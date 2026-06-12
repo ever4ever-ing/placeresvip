@@ -51,6 +51,16 @@
   gap: 14px;
 }
 
+#pickerFilters[hidden],
+.hero-right[hidden],
+.shell.catalog-open #pickerFilters {
+  display: none !important;
+}
+
+.shell.catalog-open .hero {
+  grid-template-columns: 1fr;
+}
+
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -195,6 +195,8 @@ function setPickerFiltersVisible(visible) {
   if (pickerFiltersEl) {
     pickerFiltersEl.hidden = !visible;
   }
+
+  document.querySelector(".shell")?.classList.toggle("catalog-open", !visible);
 }
 
 function showPicker() {

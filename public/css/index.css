@@ -1,0 +1,162 @@
+/* Página principal — hero, filtros, pie */
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.hero-badge,
+.pill,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 2px;
+}
+
+.hero-badge {
+  padding: 7px 14px;
+  background: var(--gold-dim);
+  color: var(--gold-light);
+  border: 1px solid var(--line);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.hero h1 {
+  margin: 18px 0 12px;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(2.6rem, 5.5vw, 4.8rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.hero p {
+  margin: 0;
+  max-width: 58ch;
+  color: var(--muted);
+  line-height: 1.75;
+  font-weight: 300;
+  font-size: 15px;
+}
+
+.casa-profile-link {
+  display: inline-block;
+  margin-top: 10px;
+}
+
+.hero-right {
+  display: grid;
+  gap: 14px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.filter-grid label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 500;
+}
+
+.catalog-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.mi-casa-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.mi-casa-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  text-decoration: none;
+  border-radius: 2px;
+  color: var(--muted);
+  opacity: 0.72;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.mi-casa-link:hover {
+  opacity: 1;
+  color: var(--gold-light);
+}
+
+.mi-casa-link strong {
+  font-family: "Jost", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mi-casa-icon {
+  display: grid;
+  place-items: center;
+  color: currentColor;
+  opacity: 0.9;
+}
+
+.mi-casa-icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+@media (max-width: 920px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-badge {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    padding: 6px 12px;
+  }
+
+  .hero h1 {
+    margin: 14px 0 10px;
+    font-size: clamp(1.9rem, 9vw, 2.6rem);
+  }
+
+  .hero p {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .hero-right {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+}

@@ -1,0 +1,501 @@
+﻿<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- SEO_INJECT -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <span class="eyebrow">Panel central</span>
+    <h1>AdministraciÃ³n general</h1>
+    <p>Gestiona todas las casas del negocio y los perfiles de cada una.</p>
+  </section>
+
+  <div id="login" class="login panel">
+    <h2>Acceso reservado</h2>
+    <p class="subtle">Solo administraciÃ³n central. Ingresa la clave maestra.</p>
+    <input id="secret" type="password" placeholder="Clave de administraciÃ³n general">
+    <div class="actions" style="margin-top:14px">
+      <button type="button" onclick="login()">Entrar</button>
+    </div>
+  </div>
+
+  <div id="panel" class="super-grid">
+    <div class="super-row">
+      <section class="panel">
+        <h2>Nueva casa</h2>
+        <p class="subtle">Crea una casa para operar en otra ciudad o sucursal.</p>
+        <form id="casaForm" class="form-grid">
+          <input name="slug" placeholder="Slug (ej: casa-valparaiso)" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*">
+          <input name="nombre" placeholder="Nombre visible" required>
+          <input name="ciudad" placeholder="Ciudad" required>
+          <input name="telefonos" placeholder="TelÃ©fonos (separados por coma)" required>
+          <div class="actions"><button>Crear casa</button></div>
+        </form>
+      </section>
+      <section class="panel">
+        <div class="toolbar">
+          <div><h2>Casas registradas</h2></div>
+          <div class="count" id="casaCount">0 casas</div>
+        </div>
+        <div id="casaList" class="list"></div>
+      </section>
+    </div>
+
+    <div class="super-row">
+      <section class="panel">
+        <h2>Nuevo perfil</h2>
+        <p class="subtle">Alta de chica en la casa que elijas.</p>
+        <form id="modelForm" class="form-grid">
+          <select name="casa_slug" id="modelCasaSelect" required></select>
+          <div class="split">
+            <input name="nombre" placeholder="Nombre" required>
+            <input name="edad" type="number" placeholder="Edad">
+          </div>
+          <div class="split">
+            <input name="altura" type="number" placeholder="Altura (cm)">
+            <input name="pelo" placeholder="Pelo">
+          </div>
+          <div class="split">
+            <input name="ciudad" placeholder="Ciudad">
+            <input name="whatsapp" placeholder="WhatsApp (+569...)">
+          </div>
+          <textarea name="descripcion" placeholder="DescripciÃ³n" rows="3"></textarea>
+          <textarea name="servicios" placeholder="Servicios separados por coma" rows="2"></textarea>
+          <label class="upload-zone" id="createUploadZone">
+            <input type="file" id="createFotoInput" name="foto" accept="image/*" multiple>
+            <strong>Subir fotos</strong>
+            <span>Haz clic o arrastra imÃ¡genes</span>
+            <div class="upload-count" id="createUploadCount">0 fotos seleccionadas</div>
+            <div class="photo-preview-grid" id="createPhotoPreview"></div>
+          </label>
+          <div class="actions"><button>Guardar perfil</button></div>
+        </form>
+      </section>
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Todos los perfiles</h2>
+            <p class="subtle" style="margin:6px 0 0">Filtra por casa y ciudad.</p>
+          </div>
+          <div class="count" id="modelCount">0 perfiles</div>
+        </div>
+        <div class="split" style="margin-bottom:16px">
+          <select id="modelCasaFilter"></select>
+          <select id="modelCiudadFilter"></select>
+        </div>
+        <div id="modelList" class="list"></div>
+      </section>
+    </div>
+  </div>
+</div>
+<script>
+const TOKEN_KEY = 'superAdminToken';
+let token = localStorage.getItem(TOKEN_KEY) || '';
+let casas = [];
+let models = [];
+
+function api(path){
+  return '/api/admin' + path;
+}
+
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function formatDate(value){
+  if(!value) return 'Sin fecha';
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('es-ES',{dateStyle:'medium',timeStyle:'short'}).format(date);
+}
+
+function valueOrDash(value){
+  return value === null || value === undefined || value === '' ? '-' : value;
+}
+
+function getServices(model){
+  return String(model.servicios ?? '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function photoSrc(foto){
+  if(!foto) return '';
+  if(foto.startsWith('http://') || foto.startsWith('https://')) return foto;
+  return '/img/' + encodeURIComponent(foto);
+}
+
+function getFotos(model){
+  if(Array.isArray(model.fotos) && model.fotos.length) return model.fotos;
+  return model.foto ? [model.foto] : [];
+}
+
+function casaLabel(slug){
+  const casa = casas.find(item => item.slug === slug);
+  return casa ? casa.nombre : slug;
+}
+
+async function login(){
+  const secret = document.getElementById('secret').value;
+  const res = await fetch('/api/login/super',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ secret })
+  });
+  if(!res.ok){ alert('ContraseÃ±a incorrecta'); return; }
+  const data = await res.json();
+  token = data.token;
+  localStorage.setItem(TOKEN_KEY, token);
+  showPanel();
+}
+
+function showPanel(){
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('panel').style.display = 'grid';
+  loadAll();
+}
+
+async function loadAll(){
+  await loadCasas();
+  renderCasaOptions();
+  await loadModelCiudades();
+  await loadModels();
+}
+
+async function loadCasas(){
+  const res = await fetch(api('/casas'), { headers:{ Authorization: token } });
+  casas = res.ok ? await res.json() : [];
+  if(!Array.isArray(casas)) casas = [];
+  renderCasaList();
+  renderCasaOptions();
+}
+
+function buildModelsUrl(){
+  const params = new URLSearchParams();
+  const casa = document.getElementById('modelCasaFilter')?.value || '';
+  const ciudad = document.getElementById('modelCiudadFilter')?.value || '';
+
+  if(casa) params.set('casa', casa);
+  if(ciudad) params.set('ciudad', ciudad);
+
+  const query = params.toString();
+  return api('/models') + (query ? '?' + query : '');
+}
+
+async function loadModelCiudades(){
+  const casa = document.getElementById('modelCasaFilter')?.value || '';
+  const url = api('/models/ciudades') + (casa ? '?casa=' + encodeURIComponent(casa) : '');
+  const res = await fetch(url, { headers:{ Authorization: token } });
+  const ciudades = res.ok ? await res.json() : [];
+  const select = document.getElementById('modelCiudadFilter');
+  const current = select?.value || '';
+  const options = ['<option value="">Todas las ciudades</option>'].concat(
+    (Array.isArray(ciudades) ? ciudades : []).map(ciudad => (
+      '<option value="' + escapeHtml(ciudad) + '">' + escapeHtml(ciudad) + '</option>'
+    ))
+  );
+
+  if(select){
+    select.innerHTML = options.join('');
+    if(current && ciudades.includes(current)){
+      select.value = current;
+    }
+  }
+}
+
+async function loadModels(){
+  const res = await fetch(buildModelsUrl(), { headers:{ Authorization: token } });
+  models = res.ok ? await res.json() : [];
+  if(!Array.isArray(models)) models = [];
+  renderModelList();
+}
+
+function renderCasaOptions(){
+  const select = document.getElementById('modelCasaSelect');
+  const filter = document.getElementById('modelCasaFilter');
+  const options = casas.map(casa => (
+    '<option value="' + escapeHtml(casa.slug) + '">' + escapeHtml(casa.nombre) + '</option>'
+  )).join('');
+  const filterOptions = '<option value="">Todas las casas</option>' + options;
+  if(select) select.innerHTML = options || '<option value="">Sin casas</option>';
+  if(filter) filter.innerHTML = filterOptions;
+}
+
+function renderCasaList(){
+  document.getElementById('casaCount').textContent = casas.length + ' casas';
+  const root = document.getElementById('casaList');
+  if(!casas.length){
+    root.innerHTML = '<div class="empty">TodavÃ­a no hay casas registradas.</div>';
+    return;
+  }
+  root.innerHTML = casas.map(casa => (
+    '<article class="card casa-card" data-slug="' + escapeHtml(casa.slug) + '">' +
+      '<h3>' + escapeHtml(casa.nombre) + '</h3>' +
+      '<div class="casa-meta">' +
+        '<span class="tag">' + escapeHtml(casa.slug) + '</span> ' +
+        '<span>' + escapeHtml(valueOrDash(casa.ciudad)) + '</span> Â· ' +
+        '<span class="' + (casa.activa ? 'status-on' : 'status-off') + '">' + (casa.activa ? 'Activa' : 'Inactiva') + '</span>' +
+      '</div>' +
+      '<div class="form-grid">' +
+        '<input data-field="nombre" value="' + escapeHtml(casa.nombre) + '" placeholder="Nombre">' +
+        '<input data-field="ciudad" value="' + escapeHtml(casa.ciudad || '') + '" placeholder="Ciudad">' +
+        '<input data-field="telefonos" value="' + escapeHtml((casa.telefonos || []).join(', ')) + '" placeholder="TelÃ©fonos (separados por coma)">' +
+        '<label class="subtle" style="margin:0"><input type="checkbox" data-field="activa"' + (casa.activa ? ' checked' : '') + '> Casa activa</label>' +
+        '<input type="password" data-field="admin_secret" placeholder="Nueva clave admin casa (opcional)">' +
+        '<p class="subtle" style="margin:0">' + (casa.has_admin_secret ? 'Clave configurada para esta casa.' : 'Sin clave propia aÃºn: usa respaldo global o genera una nueva.') + '</p>' +
+      '</div>' +
+      '<div class="casa-actions actions">' +
+        '<button type="button" onclick="saveCasa(\'' + escapeHtml(casa.slug) + '\')">Guardar casa</button>' +
+        '<button type="button" onclick="rotateCasaSecret(\'' + escapeHtml(casa.slug) + '\')">Generar clave nueva</button>' +
+        '<a class="btn-secondary" href="/' + encodeURIComponent(casa.slug) + '/admin-casa" target="_blank" rel="noopener">Admin casa</a>' +
+        '<a class="btn-secondary" href="/' + encodeURIComponent(casa.slug) + '" target="_blank" rel="noopener">Ver catÃ¡logo</a>' +
+      '</div>' +
+    '</article>'
+  )).join('');
+}
+
+function showCasaSecretMessage(casaNombre, adminSecret){
+  if(!adminSecret){
+    return;
+  }
+
+  alert(
+    'Clave admin para ' + casaNombre + ':\n\n' + adminSecret +
+    '\n\nGuÃ¡rdala ahora. No se volverÃ¡ a mostrar completa.'
+  );
+}
+
+async function saveCasa(slug, options = {}){
+  const card = document.querySelector('.casa-card[data-slug="' + slug + '"]');
+  if(!card) return;
+  const body = {
+    nombre: card.querySelector('[data-field="nombre"]').value.trim(),
+    ciudad: card.querySelector('[data-field="ciudad"]').value.trim() || null,
+    telefonos: card.querySelector('[data-field="telefonos"]').value.trim(),
+    activa: card.querySelector('[data-field="activa"]').checked
+  };
+  const nextSecret = card.querySelector('[data-field="admin_secret"]')?.value.trim();
+
+  if(options.rotate_admin_secret){
+    body.rotate_admin_secret = true;
+  }else if(nextSecret){
+    body.admin_secret = nextSecret;
+  }
+
+  const res = await fetch(api('/casas/' + encodeURIComponent(slug)), {
+    method:'PUT',
+    headers:{ Authorization: token, 'Content-Type':'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if(res.ok){
+    const data = await res.json();
+    card.querySelector('[data-field="admin_secret"]').value = '';
+
+    if(data?.admin_secret){
+      showCasaSecretMessage(body.nombre, data.admin_secret);
+    }
+
+    loadCasas();
+    return;
+  }
+
+  let message = 'No se pudo actualizar la casa';
+  try{ const data = await res.json(); if(data?.error) message = data.error; }catch(_e){}
+  alert(message);
+}
+
+async function rotateCasaSecret(slug){
+  if(!confirm('Â¿Generar una clave nueva para esta casa? La anterior dejarÃ¡ de funcionar.')){
+    return;
+  }
+
+  await saveCasa(slug, { rotate_admin_secret: true });
+}
+
+document.getElementById('casaForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.target;
+  const body = {
+    slug: form.slug.value.trim().toLowerCase(),
+    nombre: form.nombre.value.trim(),
+    ciudad: form.ciudad.value.trim() || null,
+    telefonos: form.telefonos.value.trim()
+  };
+  const res = await fetch(api('/casas'), {
+    method:'POST',
+    headers:{ Authorization: token, 'Content-Type':'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(res.ok){
+    const data = await res.json();
+    form.reset();
+    await loadCasas();
+
+    if(data?.admin_secret){
+      showCasaSecretMessage(body.nombre, data.admin_secret);
+    }else{
+      alert('Casa creada');
+    }
+
+    return;
+  }
+  let message = 'No se pudo crear la casa';
+  try{ const data = await res.json(); if(data?.error) message = data.error; }catch(_e){}
+  alert(message);
+});
+
+function renderModelList(){
+  document.getElementById('modelCount').textContent = models.length + ' perfiles';
+  const root = document.getElementById('modelList');
+  if(!models.length){
+    root.innerHTML = '<div class="empty">No hay perfiles para mostrar.</div>';
+    return;
+  }
+  root.innerHTML = models.map(model => {
+    const fotos = getFotos(model);
+    const src = photoSrc(fotos[0]);
+    const services = getServices(model);
+    const photoMarkup = src
+      ? '<img src="' + escapeHtml(src) + '" alt="">'
+      : '<div class="card-placeholder">Sin foto</div>';
+    return (
+      '<article class="card">' +
+        '<div class="card-top">' +
+          '<div class="card-media">' + photoMarkup + '</div>' +
+          '<div>' +
+            '<h3>' + escapeHtml(valueOrDash(model.nombre)) + '</h3>' +
+            '<div class="mini">' +
+              '<span class="tag">' + escapeHtml(casaLabel(model.casa_slug)) + '</span>' +
+              '<span class="id-badge">#' + escapeHtml(model.id) + '</span>' +
+              '<span class="date-chip">' + escapeHtml(formatDate(model.created_at)) + '</span>' +
+            '</div>' +
+            '<div class="details">' +
+              '<div class="detail-row"><span>Edad</span><strong>' + escapeHtml(valueOrDash(model.edad)) + '</strong></div>' +
+              '<div class="detail-row"><span>Ciudad</span><strong>' + escapeHtml(valueOrDash(model.ciudad)) + '</strong></div>' +
+              '<div class="detail-row"><span>WhatsApp</span><strong>' + escapeHtml(valueOrDash(model.whatsapp)) + '</strong></div>' +
+            '</div>' +
+            '<div class="mini">' +
+              (services.length ? services.map(s => '<span class="tag">' + escapeHtml(s) + '</span>').join('') : '') +
+            '</div>' +
+            '<div class="upload-inline">' +
+              '<label for="fotos-' + model.id + '">AÃ±adir fotos</label>' +
+              '<input type="file" id="fotos-' + model.id + '" accept="image/*" multiple onchange="addPhotos(' + model.id + ', this)">' +
+            '</div>' +
+            '<div class="actions">' +
+              '<a class="btn-secondary" href="/' + encodeURIComponent(model.casa_slug) + '/perfil/' + encodeURIComponent(model.id) + '" target="_blank" rel="noopener">Ver perfil</a>' +
+              '<button class="danger" type="button" onclick="deleteModel(' + model.id + ')">Eliminar</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</article>'
+    );
+  }).join('');
+}
+
+document.getElementById('modelCasaFilter').addEventListener('change', async () => {
+  document.getElementById('modelCiudadFilter').value = '';
+  await loadModelCiudades();
+  await loadModels();
+});
+
+document.getElementById('modelCiudadFilter').addEventListener('change', loadModels);
+
+const createFotoInput = document.getElementById('createFotoInput');
+const createUploadZone = document.getElementById('createUploadZone');
+const createPhotoPreview = document.getElementById('createPhotoPreview');
+const createUploadCount = document.getElementById('createUploadCount');
+
+function renderFilePreviews(input, previewEl, countEl){
+  previewEl.innerHTML = '';
+  const files = [...input.files];
+  countEl.textContent = files.length + (files.length === 1 ? ' foto seleccionada' : ' fotos seleccionadas');
+  files.forEach(file => {
+    const box = document.createElement('div');
+    box.className = 'photo-preview';
+    const img = document.createElement('img');
+    img.alt = file.name;
+    img.src = URL.createObjectURL(file);
+    box.appendChild(img);
+    previewEl.appendChild(box);
+  });
+}
+
+createFotoInput.addEventListener('change', () => {
+  renderFilePreviews(createFotoInput, createPhotoPreview, createUploadCount);
+});
+
+createUploadZone.addEventListener('dragover', event => {
+  event.preventDefault();
+  createUploadZone.classList.add('dragover');
+});
+
+createUploadZone.addEventListener('drop', event => {
+  event.preventDefault();
+  createUploadZone.classList.remove('dragover');
+  if(!event.dataTransfer?.files?.length) return;
+  const transfer = new DataTransfer();
+  [...createFotoInput.files, ...event.dataTransfer.files].forEach(file => transfer.items.add(file));
+  createFotoInput.files = transfer.files;
+  renderFilePreviews(createFotoInput, createPhotoPreview, createUploadCount);
+});
+
+document.getElementById('modelForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const res = await fetch(api('/model'), {
+    method:'POST',
+    headers:{ Authorization: token },
+    body: formData
+  });
+  if(res.ok){
+    event.target.reset();
+    createPhotoPreview.innerHTML = '';
+    createUploadCount.textContent = '0 fotos seleccionadas';
+    await loadModelCiudades();
+    await loadModels();
+    alert('Perfil guardado');
+    return;
+  }
+  if(res.status === 401){ alert('SesiÃ³n invÃ¡lida'); return; }
+  let message = 'No se pudo guardar el perfil';
+  try{ const data = await res.json(); if(data?.error) message = data.error; }catch(_e){}
+  alert(message);
+});
+
+async function addPhotos(id, input){
+  const files = [...input.files].filter(file => file && file.size > 0);
+  if(!files.length) return;
+  const formData = new FormData();
+  files.forEach(file => formData.append('foto', file));
+  const res = await fetch(api('/model/' + encodeURIComponent(id) + '/fotos'), {
+    method:'POST',
+    headers:{ Authorization: token },
+    body: formData
+  });
+  input.value = '';
+  if(res.ok){ loadModels(); alert('Fotos actualizadas'); return; }
+  alert('No se pudieron subir las fotos');
+}
+
+async function deleteModel(id){
+  if(!confirm('Â¿Eliminar perfil?')) return;
+  const res = await fetch(api('/model/' + id), {
+    method:'DELETE',
+    headers:{ Authorization: token }
+  });
+  if(res.ok){ loadModels(); return; }
+  alert('No se pudo eliminar el perfil');
+}
+
+if(token) showPanel();
+</script>
+</body>
+</html>

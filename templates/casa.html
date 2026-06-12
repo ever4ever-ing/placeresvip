@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0809">
+<!-- SEO_INJECT -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/catalog.css">
+<link rel="stylesheet" href="/css/casa.css">
+</head>
+<body>
+
+<div class="shell">
+  <a class="back" href="/">← Catálogo general</a>
+
+  <section class="casa-hero">
+    <div class="panel">
+      <span class="eyebrow" id="casaEyebrow">Casa</span>
+      <h1 id="casaNombre">Cargando...</h1>
+      <p class="casa-meta" id="casaSeoLine">Escorts, putas y cariñosas en Chile</p>
+      <p class="casa-meta" id="casaCiudad"></p>
+      <div class="phones" id="casaPhones"></div>
+    </div>
+
+    <div class="panel searchbox">
+      <label for="search">Buscar en esta casa</label>
+      <input id="search" type="search" placeholder="Nombre, ciudad, servicios...">
+      <label for="ciudadFilter" class="filter-label">Ciudad del perfil</label>
+      <select id="ciudadFilter">
+        <option value="">Todas las ciudades</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="catalog-section">
+    <div class="section-head">
+      <h2>Escorts y cariñosas disponibles</h2>
+      <p id="modelCount">Cargando catálogo...</p>
+    </div>
+
+    <main id="models" class="catalog">
+      <div class="loading">Cargando perfiles...</div>
+    </main>
+  </section>
+</div>
+
+<script type="module" src="/js/casa.js"></script>
+</body>
+</html>

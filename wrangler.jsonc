@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "casa-rocio",
+  "main": "worker.js",
+  "compatibility_date": "2026-03-01",
+  "assets": {
+    "directory": "./public"
+  },
+  "vars": {
+    "USE_MOCK_DB": "false",
+    "DEFAULT_CASA_SLUG": "casa-rocio"
+  },
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "casa-rocio",
+      "remote": true
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "casa-rocio",
+      "database_id": "5550100d-6843-43a3-bf93-df13a1b11357",
+      "remote": true
+    }
+  ]
+}

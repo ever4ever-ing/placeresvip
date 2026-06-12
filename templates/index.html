@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0809">
+<!-- SEO_INJECT -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/catalog.css">
+<link rel="stylesheet" href="/css/index.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <section class="hero">
+    <div class="panel">
+      <span class="hero-badge" id="casaBadge">Todas las casas</span>
+      <h1>Selección exclusiva</h1>
+      <p class="visually-hidden" id="heroIntro">Catálogo de escorts en Chile.</p>
+    </div>
+
+    <div class="hero-right">
+      <div class="panel searchbox">
+        <label for="search">Buscar perfil</label>
+        <input id="search" type="search" placeholder="Nombre, ciudad, servicios, descripción...">
+        <div class="filter-grid">
+          <div>
+            <label for="ciudadFilter">Ciudad</label>
+            <select id="ciudadFilter">
+              <option value="">Todas las ciudades</option>
+            </select>
+          </div>
+          <div>
+            <label for="casaFilter">Casa</label>
+            <select id="casaFilter">
+              <option value="">Todas las casas</option>
+            </select>
+          </div>
+        </div>
+        <a id="casaProfileLink" class="footnote casa-profile-link" href="#" hidden>Ver perfil de la casa →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="catalog-section">
+    <div class="section-head">
+      <h2>Perfiles disponibles</h2>
+      <p id="modelCount" aria-live="polite">Cargando catálogo...</p>
+    </div>
+
+    <main id="models" class="catalog">
+      <div class="loading">Cargando perfiles...</div>
+    </main>
+  </section>
+
+  <div id="catalogFooter" class="catalog-footer"></div>
+
+</div>
+
+<script type="module" src="/js/index.js"></script>
+</body>
+</html>

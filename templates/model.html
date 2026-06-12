@@ -1,0 +1,254 @@
+﻿<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- SEO_INJECT -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/model.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <a class="back" id="backLink" href="/">â† Volver a la casa</a>
+
+  <div id="content">
+    <div class="loading">Cargando perfil...</div>
+  </div>
+
+</div>
+
+<script>
+
+function getCasa(){
+  return window.__CASA__ || { slug: '', nombre: '', ciudad: null, telefonos: [] };
+}
+
+function applyCasaBranding(){
+  const casa = getCasa();
+  const back = document.getElementById('backLink');
+
+  if(back && casa.slug){
+    back.href = '/' + encodeURIComponent(casa.slug);
+  }
+}
+
+function apiBase(){
+  return '/api/' + encodeURIComponent(getCasa().slug);
+}
+
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatDate(value){
+  if(!value){
+    return 'Sin fecha';
+  }
+
+  const date = new Date(value);
+
+  if(Number.isNaN(date.getTime())){
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat('es-ES', {
+    dateStyle: 'long',
+    timeStyle: 'short'
+  }).format(date);
+}
+
+function valueOrDash(value){
+  return value === null || value === undefined || value === '' ? 'â€”' : value;
+}
+
+function photoSrc(foto){
+  if(!foto){
+    return '';
+  }
+
+  if(foto.startsWith('http://') || foto.startsWith('https://')){
+    return foto;
+  }
+
+  return '/img/' + encodeURIComponent(foto);
+}
+
+function getServices(model){
+  return String(model.servicios ?? '')
+    .split(',')
+    .map(service => service.trim())
+    .filter(Boolean);
+}
+
+function getModelId(){
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return parts[parts.length - 1] || '';
+}
+
+function renderSpec(label, value){
+  return (
+    '<div class="spec">' +
+      '<label>' + escapeHtml(label) + '</label>' +
+      '<strong>' + escapeHtml(value) + '</strong>' +
+    '</div>'
+  );
+}
+
+function getFotos(model){
+  if(Array.isArray(model.fotos) && model.fotos.length > 0){
+    return model.fotos;
+  }
+
+  return model.foto ? [model.foto] : [];
+}
+
+function renderCarousel(fotos, nombre){
+  if(fotos.length === 0){
+    return '<div class="profile-placeholder">Sin imagen</div>';
+  }
+
+  const slides = fotos.map((foto, index) => (
+    '<div class="carousel-slide">' +
+      '<img src="' + escapeHtml(photoSrc(foto)) + '" alt="' + escapeHtml(nombre) + ' â€” foto ' + (index + 1) + '">' +
+    '</div>'
+  )).join('');
+
+  const dots = fotos.map((_, index) => (
+    '<button type="button" class="carousel-dot' + (index === 0 ? ' active' : '') + '" data-index="' + index + '" aria-label="Foto ' + (index + 1) + '"></button>'
+  )).join('');
+
+  const controls = fotos.length > 1
+    ? '<button type="button" class="carousel-btn prev" aria-label="Foto anterior">â€¹</button>' +
+      '<button type="button" class="carousel-btn next" aria-label="Foto siguiente">â€º</button>' +
+      '<div class="carousel-footer">' +
+        '<span class="carousel-counter">1 / ' + fotos.length + '</span>' +
+        '<div class="carousel-dots">' + dots + '</div>' +
+      '</div>'
+    : '';
+
+  return (
+    '<div class="carousel" data-count="' + fotos.length + '">' +
+      '<div class="carousel-track">' + slides + '</div>' +
+      controls +
+    '</div>'
+  );
+}
+
+function initCarousel(root){
+  const carousel = root.querySelector('.carousel');
+
+  if(!carousel || Number(carousel.dataset.count || 0) <= 1){
+    return;
+  }
+
+  const track = carousel.querySelector('.carousel-track');
+  const counter = carousel.querySelector('.carousel-counter');
+  const dots = [...carousel.querySelectorAll('.carousel-dot')];
+  const total = dots.length;
+  let index = 0;
+
+  function goTo(nextIndex){
+    index = (nextIndex + total) % total;
+    track.style.transform = 'translateX(-' + (index * 100) + '%)';
+
+    if(counter){
+      counter.textContent = (index + 1) + ' / ' + total;
+    }
+
+    dots.forEach((dot, dotIndex) => {
+      dot.classList.toggle('active', dotIndex === index);
+    });
+  }
+
+  carousel.querySelector('.carousel-btn.prev')?.addEventListener('click', () => goTo(index - 1));
+  carousel.querySelector('.carousel-btn.next')?.addEventListener('click', () => goTo(index + 1));
+  dots.forEach(dot => dot.addEventListener('click', () => goTo(Number(dot.dataset.index))));
+}
+
+function renderProfile(model){
+  const fotos = getFotos(model);
+  const services = getServices(model);
+  const nombre = valueOrDash(model.nombre);
+
+  const whatsapp = model.whatsapp
+    ? '<a class="whatsapp-link" href="https://wa.me/' + escapeHtml(String(model.whatsapp).replace(/\D/g, '')) + '" target="_blank" rel="noopener">Contactar por WhatsApp</a>'
+    : '';
+
+  const city = valueOrDash(model.ciudad || getCasa().ciudad);
+  const root = document.getElementById('content');
+  root.innerHTML = (
+    '<article class="profile">' +
+      '<div class="profile-media">' + renderCarousel(fotos, nombre) + '</div>' +
+      '<div class="profile-body">' +
+        '<span class="eyebrow">Escort ' + escapeHtml(city) + '</span>' +
+        '<h1>' + escapeHtml(valueOrDash(model.nombre)) + ' Â· Escort ' + escapeHtml(city) + '</h1>' +
+        '<p class="published">CariÃ±osas y acompaÃ±antes Â· ' + escapeHtml(getCasa().nombre || '') + '</p>' +
+        '<p class="published">Publicado ' + escapeHtml(formatDate(model.created_at)) + '</p>' +
+        (model.descripcion
+          ? '<p class="desc">' + escapeHtml(model.descripcion) + '</p>'
+          : '') +
+        '<div class="specs">' +
+          renderSpec('Edad', valueOrDash(model.edad)) +
+          renderSpec('Altura', valueOrDash(model.altura) + (model.altura ? ' cm' : '')) +
+          renderSpec('Pelo', valueOrDash(model.pelo)) +
+          renderSpec('Ciudad', valueOrDash(model.ciudad)) +
+        '</div>' +
+        '<div class="tags">' +
+          (services.length
+            ? services.map(service => '<span class="tag">' + escapeHtml(service) + '</span>').join('')
+            : '<span class="tag">Sin servicios registrados</span>') +
+        '</div>' +
+        (whatsapp ? '<div class="actions">' + whatsapp + '</div>' : '') +
+      '</div>' +
+    '</article>'
+  );
+
+  initCarousel(root);
+}
+
+async function loadProfile(){
+  const id = getModelId();
+  const container = document.getElementById('content');
+
+  if(!id){
+    container.innerHTML = '<div class="empty">Perfil no encontrado.</div>';
+    return;
+  }
+
+  try{
+    const res = await fetch(apiBase() + '/model/' + encodeURIComponent(id), { cache: 'no-store' });
+
+    if(res.status === 404){
+      container.innerHTML = '<div class="empty">Este perfil ya no estÃ¡ disponible.</div>';
+      return;
+    }
+
+    if(!res.ok){
+      throw new Error('HTTP ' + res.status);
+    }
+
+    const model = await res.json();
+    renderProfile(model);
+  }catch(error){
+    container.innerHTML = '<div class="empty">No se pudo cargar el perfil.</div>';
+    console.error(error);
+  }
+}
+
+applyCasaBranding();
+loadProfile();
+
+</script>
+
+</body>
+</html>

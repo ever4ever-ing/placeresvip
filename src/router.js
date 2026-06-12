@@ -18,6 +18,7 @@ import {
   listModels,
   listAllModels,
   listModelCiudades,
+  listCasaCiudades,
   getModel,
   createModel,
   appendModelPhotos,
@@ -77,7 +78,7 @@ const JSON_NO_STORE = {
   }
 };
 
-const RESERVED_TOP_LEVEL = new Set(["api", "img", "admin"]);
+const RESERVED_TOP_LEVEL = new Set(["api", "img", "admin", "css", "js"]);
 
 function htmlResponse(content) {
   return new Response(content, { headers: HTML_HEADERS });
@@ -555,10 +556,20 @@ export async function handleRequest(request, env) {
     return Response.json(casas, JSON_NO_STORE);
   }
 
+  if (segments[0] === "api" && segments[1] === "catalog" && segments[2] === "casas") {
+    const catalogUrl = new URL(request.url);
+
+    if (segments[3] === "ciudades" && request.method === "GET" && segments.length === 4) {
+      const casaFilter = catalogUrl.searchParams.get("casa");
+      const ciudades = await listCasaCiudades(env, casaFilter || null);
+      return Response.json(ciudades, JSON_NO_STORE);
+    }
+  }
+
   if (segments[0] === "api" && segments[1] === "catalog" && segments[2] === "models") {
     const catalogUrl = new URL(request.url);
 
-    if (segments[3] === "ciudades" && request.method === "GET") {
+    if (segments[3] === "ciudades" && request.method === "GET" && segments.length === 4) {
       const casaFilter = catalogUrl.searchParams.get("casa");
       const ciudades = await listModelCiudades(env, casaFilter || null);
       return Response.json(ciudades, JSON_NO_STORE);

@@ -3,7 +3,13 @@ import { handleRequest } from "./src/router.js";
 export default {
   async fetch(request, env) {
     try {
-      return await handleRequest(request, env);
+      const response = await handleRequest(request, env);
+
+      if (response.status !== 404 || !env.ASSETS) {
+        return response;
+      }
+
+      return env.ASSETS.fetch(request);
     } catch (error) {
       console.error(error);
 

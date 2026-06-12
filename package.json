@@ -1,0 +1,14 @@
+{
+  "name": "placeresvip",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 execute casa-rocio --local --file=./model.sql",
+    "db:remote": "wrangler d1 execute casa-rocio --remote --file=./model.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.54.0"
+  }
+}

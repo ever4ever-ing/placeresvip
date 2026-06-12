@@ -382,12 +382,29 @@ function matchesCasa(model, casaSlug) {
   return !casaSlug || model.casa_slug === casaSlug;
 }
 
-function matchesCiudad(model, ciudad) {
+function matchesCiudad(model, ciudad, casaSlug, casasBySlug) {
   if (!ciudad) {
     return true;
   }
 
-  return String(model.ciudad ?? "").trim().toLowerCase() === String(ciudad).trim().toLowerCase();
+  const target = String(ciudad).trim().toLowerCase();
+  const modelCiudad = String(model.ciudad ?? "").trim().toLowerCase();
+
+  if (modelCiudad === target) {
+    return true;
+  }
+
+  if (
+    !modelCiudad &&
+    casaSlug &&
+    !isIndependentCasaFilter(casaSlug) &&
+    casasBySlug?.get(casaSlug)
+  ) {
+    const casa = casasBySlug.get(casaSlug);
+    return String(casa?.ciudad ?? "").trim().toLowerCase() === target;
+  }
+
+  return false;
 }
 
 function normalizeModelFilters(filters) {
@@ -435,7 +452,7 @@ export async function listAllModels(env, filters) {
     const models = mockModels.filter(
       (model) =>
         matchesCasa(model, casa) &&
-        matchesCiudad(model, ciudad) &&
+        matchesCiudad(model, ciudad, casa, casasBySlug) &&
         matchesCasaCiudad(model, casaCiudad, casasBySlug)
     );
 
@@ -455,8 +472,22 @@ export async function listAllModels(env, filters) {
   }
 
   if (ciudad) {
-    conditions.push("LOWER(TRIM(ciudad)) = LOWER(TRIM(?))");
-    binds.push(ciudad);
+    if (casa && !isIndependentCasaFilter(casa)) {
+      conditions.push(`(
+        LOWER(TRIM(ciudad)) = LOWER(TRIM(?))
+        OR (
+          (ciudad IS NULL OR TRIM(ciudad) = '')
+          AND casa_slug IN (
+            SELECT slug FROM casas
+            WHERE activa = 1 AND LOWER(TRIM(ciudad)) = LOWER(TRIM(?))
+          )
+        )
+      )`);
+      binds.push(ciudad, ciudad);
+    } else {
+      conditions.push("LOWER(TRIM(ciudad)) = LOWER(TRIM(?))");
+      binds.push(ciudad);
+    }
   }
 
   if (casaCiudad) {
@@ -505,6 +536,42 @@ export async function listModelCiudades(env, casaSlug) {
     : casaSlug
     ? await env.DB.prepare(query).bind(casaSlug).all()
     : await env.DB.prepare(query).all();
+
+  return results.map((row) => row.ciudad).filter(Boolean);
+}
+
+export async function listCasaCiudades(env, casaSlug) {
+  if (useMockDb(env)) {
+    let items = mockCasas.filter((casa) => isCasaActiva(casa));
+
+    if (casaSlug && !isIndependentCasaFilter(casaSlug) && isValidCasaSlug(casaSlug)) {
+      items = items.filter((casa) => casa.slug === casaSlug);
+    }
+
+    return [
+      ...new Set(items.map((casa) => String(casa.ciudad ?? "").trim()).filter(Boolean))
+    ].sort((left, right) => left.localeCompare(right, "es"));
+  }
+
+  if (casaSlug && !isIndependentCasaFilter(casaSlug) && isValidCasaSlug(casaSlug)) {
+    const { results } = await env.DB.prepare(
+      `SELECT DISTINCT TRIM(ciudad) AS ciudad
+       FROM casas
+       WHERE activa = 1 AND slug = ? AND ciudad IS NOT NULL AND TRIM(ciudad) != ''
+       ORDER BY ciudad ASC`
+    )
+      .bind(casaSlug)
+      .all();
+
+    return results.map((row) => row.ciudad).filter(Boolean);
+  }
+
+  const { results } = await env.DB.prepare(
+    `SELECT DISTINCT TRIM(ciudad) AS ciudad
+     FROM casas
+     WHERE activa = 1 AND ciudad IS NOT NULL AND TRIM(ciudad) != ''
+     ORDER BY ciudad ASC`
+  ).all();
 
   return results.map((row) => row.ciudad).filter(Boolean);
 }

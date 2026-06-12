@@ -4,7 +4,8 @@
   "main": "worker.js",
   "compatibility_date": "2026-03-01",
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    "binding": "ASSETS"
   },
   "vars": {
     "USE_MOCK_DB": "false",

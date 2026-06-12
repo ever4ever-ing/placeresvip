@@ -165,18 +165,6 @@ function applyCasaBranding() {
         ". Escorts, cariñosas y acompañantes en Chile.";
     }
   }
-
-  const profileLink = document.getElementById("casaProfileLink");
-
-  if (profileLink) {
-    if (selected && !isIndependentSelection()) {
-      profileLink.href = casaProfileUrl(selected);
-      profileLink.textContent = "Ver perfil de " + casaLabel(selected) + " →";
-      profileLink.hidden = false;
-    } else {
-      profileLink.hidden = true;
-    }
-  }
 }
 
 function setCatalogNavVisible(visible) {
@@ -195,7 +183,6 @@ function showPicker() {
   heroFiltersEl.hidden = true;
   setCatalogNavVisible(false);
   casaFilterInput.value = "";
-  document.getElementById("search").value = "";
   document.getElementById("ciudadFilter").value = "";
   allModels = [];
   catalogEl.innerHTML =
@@ -206,31 +193,28 @@ function showPicker() {
   syncUrl();
 }
 
-function showCatalog(slug) {
+async function showCatalog(slug) {
   casaFilterInput.value = slug;
   casaPickerEl.hidden = true;
   catalogSectionEl.hidden = false;
   heroFiltersEl.hidden = false;
   setCatalogNavVisible(true);
   applyCasaBranding();
+  await updateCiudadOptions();
   syncUrl();
 }
 
-function getSearchText(model) {
-  return [
-    model.id,
-    model.nombre,
-    model.edad,
-    model.altura,
-    model.pelo,
-    model.ciudad,
-    model.whatsapp,
-    model.descripcion,
-    model.servicios,
-    model.created_at
-  ]
-    .join(" ")
-    .toLowerCase();
+function renderModels() {
+  if (!allModels.length) {
+    updateModelCount(0);
+    catalogEl.innerHTML = '<div class="empty">No hay perfiles publicados en esta selección.</div>';
+    renderCatalogFooter(renderMiCasaLink());
+    return;
+  }
+
+  updateModelCount(allModels.length);
+  catalogEl.innerHTML = allModels.map(renderCard).join("");
+  renderCatalogFooter(renderMiCasaLink());
 }
 
 function updateModelCount(total) {
@@ -252,43 +236,88 @@ function renderCatalogFooter(html) {
   document.getElementById("catalogFooter").innerHTML = html || "";
 }
 
-function renderModels() {
-  const query = document.getElementById("search").value.trim().toLowerCase();
-  const filtered = allModels.filter((model) => getSearchText(model).includes(query));
-
-  if (!filtered.length) {
-    updateModelCount(0);
-    catalogEl.innerHTML = query
-      ? '<div class="empty">No hay perfiles que coincidan con esa búsqueda.</div>'
-      : '<div class="empty">No hay perfiles publicados en esta selección.</div>';
-    renderCatalogFooter(renderMiCasaLink());
-    return;
-  }
-
-  updateModelCount(filtered.length);
-  catalogEl.innerHTML = filtered.map(renderCard).join("");
-  renderCatalogFooter(renderMiCasaLink());
+function getCasaCiudades() {
+  return [
+    ...new Set(casas.map((casa) => String(casa.ciudad ?? "").trim()).filter(Boolean))
+  ].sort((left, right) => left.localeCompare(right, "es"));
 }
 
-function renderCiudadOptions() {
-  const select = document.getElementById("ciudadFilter");
-  const current = select.value || "";
-  const ciudades = [
-    ...new Set(allModels.map((model) => String(model.ciudad ?? "").trim()).filter(Boolean))
-  ].sort((left, right) => left.localeCompare(right, "es"));
+async function fetchCasaCiudades(casaSlug) {
+  const url =
+    "/api/catalog/casas/ciudades" +
+    (casaSlug ? "?casa=" + encodeURIComponent(casaSlug) : "");
 
-  select.innerHTML = ['<option value="">Todas las ciudades</option>']
-    .concat(
-      ciudades.map(
-        (ciudad) =>
-          '<option value="' + escapeHtml(ciudad) + '">' + escapeHtml(ciudad) + "</option>"
-      )
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const ciudades = await res.json();
+    return Array.isArray(ciudades) ? ciudades : [];
+  } catch (error) {
+    console.error("Error cargando ciudades de casas:", error);
+    return [];
+  }
+}
+
+async function fetchModelCiudades(casaSlug) {
+  const url =
+    "/api/catalog/models/ciudades" +
+    (casaSlug ? "?casa=" + encodeURIComponent(casaSlug) : "");
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const ciudades = await res.json();
+    return Array.isArray(ciudades) ? ciudades : [];
+  } catch (error) {
+    console.error("Error cargando ciudades:", error);
+    return [];
+  }
+}
+
+function renderCiudadSelect(ciudades) {
+  const select = document.getElementById("ciudadFilter");
+  const current = select?.value || "";
+  const options = ['<option value="">Todas las ciudades</option>'].concat(
+    ciudades.map(
+      (ciudad) =>
+        '<option value="' + escapeHtml(ciudad) + '">' + escapeHtml(ciudad) + "</option>"
     )
-    .join("");
+  );
+
+  select.innerHTML = options.join("");
 
   if (current && ciudades.includes(current)) {
     select.value = current;
   }
+}
+
+async function updateCiudadOptions() {
+  const selected = getSelectedCasaSlug();
+  let ciudades = [];
+
+  if (isIndependentSelection()) {
+    ciudades = await fetchModelCiudades(INDEPENDENT_CASA);
+  } else {
+    const [fromCasas, fromSelectedCasa, fromModels] = await Promise.all([
+      fetchCasaCiudades(null),
+      selected ? fetchCasaCiudades(selected) : Promise.resolve([]),
+      selected ? fetchModelCiudades(selected) : Promise.resolve([])
+    ]);
+
+    ciudades = [
+      ...new Set(fromCasas.concat(fromSelectedCasa).concat(fromModels).concat(getCasaCiudades()))
+    ].sort((left, right) => left.localeCompare(right, "es"));
+  }
+
+  renderCiudadSelect(ciudades);
 }
 
 function renderCasaCard(casa) {
@@ -382,7 +411,7 @@ async function loadModels() {
 
     const models = await res.json();
     allModels = Array.isArray(models) ? models : [];
-    renderCiudadOptions();
+    await updateCiudadOptions();
     applyCasaBranding();
     renderModels();
   } catch (error) {
@@ -394,11 +423,9 @@ async function loadModels() {
 }
 
 async function selectCasa(slug) {
-  showCatalog(slug);
+  await showCatalog(slug);
   await loadModels();
 }
-
-document.getElementById("search").addEventListener("input", renderModels);
 
 document.getElementById("ciudadFilter").addEventListener("change", async () => {
   applyCasaBranding();

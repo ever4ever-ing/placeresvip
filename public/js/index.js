@@ -242,10 +242,26 @@ function getCasaCiudades() {
   ].sort((left, right) => left.localeCompare(right, "es"));
 }
 
+async function refreshCasasFromApi() {
+  try {
+    const res = await fetch("/api/casas", { cache: "no-store" });
+
+    if (!res.ok) {
+      return false;
+    }
+
+    const data = await res.json();
+    casas = Array.isArray(data) ? data : [];
+    return true;
+  } catch (error) {
+    console.error("Error refrescando casas:", error);
+    return false;
+  }
+}
+
 async function fetchCasaCiudades(casaSlug) {
   const url =
-    "/api/catalog/casas/ciudades" +
-    (casaSlug ? "?casa=" + encodeURIComponent(casaSlug) : "");
+    "/api/casas/ciudades" + (casaSlug ? "?casa=" + encodeURIComponent(casaSlug) : "");
 
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -306,15 +322,19 @@ async function updateCiudadOptions() {
   if (isIndependentSelection()) {
     ciudades = await fetchModelCiudades(INDEPENDENT_CASA);
   } else {
-    const [fromCasas, fromSelectedCasa, fromModels] = await Promise.all([
-      fetchCasaCiudades(null),
-      selected ? fetchCasaCiudades(selected) : Promise.resolve([]),
-      selected ? fetchModelCiudades(selected) : Promise.resolve([])
-    ]);
+    await refreshCasasFromApi();
+    ciudades = getCasaCiudades();
 
-    ciudades = [
-      ...new Set(fromCasas.concat(fromSelectedCasa).concat(fromModels).concat(getCasaCiudades()))
-    ].sort((left, right) => left.localeCompare(right, "es"));
+    if (!ciudades.length) {
+      ciudades = await fetchCasaCiudades(null);
+    }
+
+    if (selected) {
+      const fromModels = await fetchModelCiudades(selected);
+      ciudades = [...new Set(ciudades.concat(fromModels))].sort((left, right) =>
+        left.localeCompare(right, "es")
+      );
+    }
   }
 
   renderCiudadSelect(ciudades);

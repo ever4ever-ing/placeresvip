@@ -79,6 +79,7 @@ const JSON_NO_STORE = {
 };
 
 const RESERVED_TOP_LEVEL = new Set(["api", "img", "admin", "css", "js"]);
+const RESERVED_API_SEGMENTS = new Set(["catalog", "admin", "login", "casas"]);
 
 function htmlResponse(content) {
   return new Response(content, { headers: HTML_HEADERS });
@@ -556,6 +557,13 @@ export async function handleRequest(request, env) {
     return Response.json(casas, JSON_NO_STORE);
   }
 
+  if (pathname === "/api/casas/ciudades" && request.method === "GET") {
+    const catalogUrl = new URL(request.url);
+    const casaFilter = catalogUrl.searchParams.get("casa");
+    const ciudades = await listCasaCiudades(env, casaFilter || null);
+    return Response.json(ciudades, JSON_NO_STORE);
+  }
+
   if (segments[0] === "api" && segments[1] === "catalog" && segments[2] === "casas") {
     const catalogUrl = new URL(request.url);
 
@@ -613,7 +621,7 @@ export async function handleRequest(request, env) {
     }
   }
 
-  if (segments[0] === "api" && segments.length >= 3 && isValidCasaSlug(segments[1])) {
+  if (segments[0] === "api" && segments.length >= 3 && isValidCasaSlug(segments[1]) && !RESERVED_API_SEGMENTS.has(segments[1])) {
     const response = await handleCasaScopedApi(request, env, segments[1], segments);
 
     if (response) {

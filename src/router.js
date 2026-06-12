@@ -11,9 +11,14 @@ import {
   seoNoIndex,
   renderRobotsTxt,
   renderSitemapXml,
-  getRequestOrigin,
+  resolveSiteOrigin,
   injectCasaVisibleDefaults
 } from "./seo.js";
+import {
+  injectIndexCrawlables,
+  injectCasaModelLinks,
+  injectModelPreview
+} from "./crawlable.js";
 import {
   listModels,
   listAllModels,
@@ -151,10 +156,13 @@ async function resolveActiveCasa(env, slug) {
   return casa;
 }
 
-async function serveCasaProfile(request, casa) {
-  const { seoHead } = seoForCasa(request, casa);
+async function serveCasaProfile(request, env, casa) {
+  const origin = resolveSiteOrigin(request, env);
+  const models = await listModels(env, casa.slug, null);
+  const { seoHead } = seoForCasa(request, env, casa);
   let html = injectCasaContext(casaHtml, casa);
   html = injectCasaVisibleDefaults(html, casa);
+  html = injectCasaModelLinks(html, origin, casa, models);
   html = withSeo(html, seoHead);
   return htmlResponse(html);
 }
@@ -172,8 +180,16 @@ async function serveSuperAdmin() {
 }
 
 async function serveIndependentModelProfile(request, env, model) {
-  const { seoHead } = seoForModel(request, { slug: "", nombre: "Independientes", ciudad: null }, model);
-  const html = withSeo(injectCatalogContext(modelHtml), seoHead);
+  const origin = resolveSiteOrigin(request, env);
+  const { seoHead } = seoForModel(
+    request,
+    env,
+    { slug: "", nombre: "Independientes", ciudad: null },
+    model
+  );
+  let html = injectCatalogContext(modelHtml);
+  html = injectModelPreview(html, origin, null, model);
+  html = withSeo(html, seoHead);
   return htmlResponse(html);
 }
 
@@ -184,8 +200,11 @@ async function serveModelProfile(request, env, casa, modelId) {
     return notFound();
   }
 
-  const { seoHead } = seoForModel(request, casa, model);
-  const html = withSeo(injectCasaContext(modelHtml, casa), seoHead);
+  const { seoHead } = seoForModel(request, env, casa, model);
+  const origin = resolveSiteOrigin(request, env);
+  let html = injectCasaContext(modelHtml, casa);
+  html = injectModelPreview(html, origin, casa, model);
+  html = withSeo(html, seoHead);
   return htmlResponse(html);
 }
 
@@ -651,21 +670,30 @@ export async function handleRequest(request, env) {
   }
 
   if (pathname === "/robots.txt") {
-    return new Response(renderRobotsTxt(getRequestOrigin(request)), {
+    return new Response(renderRobotsTxt(resolveSiteOrigin(request, env)), {
       headers: { "Content-Type": "text/plain; charset=UTF-8" }
     });
   }
 
   if (pathname === "/sitemap.xml") {
-    const xml = await renderSitemapXml(request, env, { listCasas, listAllModels });
+    const xml = await renderSitemapXml(request, env, {
+      listCasas,
+      listAllModels,
+      listCasaCiudades
+    });
     return new Response(xml, {
       headers: { "Content-Type": "application/xml; charset=UTF-8" }
     });
   }
 
   if (pathname === "/") {
-    const { seoHead } = seoForCatalog(request);
-    return htmlResponse(withSeo(injectCatalogContext(indexHtml), seoHead));
+    const origin = resolveSiteOrigin(request, env);
+    const casas = await listCasas(env);
+    const ciudades = await listCasaCiudades(env);
+    const { seoHead } = seoForCatalog(request, env);
+    let html = injectCatalogContext(indexHtml);
+    html = injectIndexCrawlables(html, origin, casas, ciudades);
+    return htmlResponse(withSeo(html, seoHead));
   }
 
   if (pathname === "/admin") {
@@ -708,7 +736,7 @@ export async function handleRequest(request, env) {
     }
 
     if (rest.length === 0) {
-      return serveCasaProfile(request, casa);
+      return serveCasaProfile(request, env, casa);
     }
 
     if (rest.length === 1 && (rest[0] === "admin-casa" || rest[0] === "admin")) {

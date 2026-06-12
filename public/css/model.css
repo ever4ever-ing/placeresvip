@@ -334,3 +334,28 @@ body{
     grid-template-columns:1fr;
   }
 }
+
+.profile-preview{
+  max-width:720px;
+  margin:0 auto;
+  padding:24px 20px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:4px;
+}
+
+.profile-preview h1{
+  margin:0 0 10px;
+  font-family:"Cormorant Garamond",Georgia,serif;
+  color:#fff;
+}
+
+.profile-preview p{
+  margin:0 0 10px;
+  color:var(--muted);
+  line-height:1.65;
+}
+
+.profile-preview a{
+  color:var(--gold);
+}

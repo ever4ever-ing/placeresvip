@@ -268,3 +268,34 @@ a.tag:hover {
     border-color: rgba(201, 169, 98, 0.3);
   }
 }
+
+.seo-model-link {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 14px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.seo-model-link h3 {
+  margin: 0 0 8px;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  color: #fff;
+}
+
+.seo-model-link a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.seo-model-link a:hover {
+  color: var(--gold-light);
+}
+
+.seo-model-link p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  line-height: 1.6;
+}

@@ -1,4 +1,4 @@
-function escapeHtml(value) {
+export function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -9,6 +9,22 @@ function escapeHtml(value) {
 export function getRequestOrigin(request) {
   const url = new URL(request.url);
   return url.origin;
+}
+
+export function resolveSiteOrigin(request, env) {
+  const configured = String(env?.SITE_URL ?? "")
+    .trim()
+    .replace(/\/$/, "");
+
+  if (configured) {
+    try {
+      return new URL(configured).origin;
+    } catch {
+      // Fall back to the request origin when SITE_URL is invalid.
+    }
+  }
+
+  return getRequestOrigin(request);
 }
 
 function normalizeCity(ciudad) {
@@ -88,7 +104,9 @@ export function renderSeoHead({
   robots = "index, follow",
   ogType = "website",
   ogImage = null,
-  jsonLd = null
+  jsonLd = null,
+  siteOrigin = null,
+  googleSiteVerification = null
 }) {
   const tags = [
     `<title>${escapeHtml(title)}</title>`,
@@ -96,7 +114,13 @@ export function renderSeoHead({
     renderMetaTag("keywords", keywords?.join(", ")),
     renderMetaTag("robots", robots),
     renderMetaTag("googlebot", robots),
+    googleSiteVerification
+      ? renderMetaTag("google-site-verification", googleSiteVerification)
+      : "",
     canonical ? `<link rel="canonical" href="${escapeHtml(canonical)}">` : "",
+    siteOrigin
+      ? `<link rel="sitemap" type="application/xml" href="${escapeHtml(siteOrigin)}/sitemap.xml">`
+      : "",
     renderOgTag("og:type", ogType),
     renderOgTag("og:title", title),
     renderOgTag("og:description", description),
@@ -146,8 +170,8 @@ export function injectCasaVisibleDefaults(html, casa) {
     );
 }
 
-export function seoForCatalog(request) {
-  const origin = getRequestOrigin(request);
+export function seoForCatalog(request, env) {
+  const origin = resolveSiteOrigin(request, env);
   const canonical = `${origin}/`;
   const title = "Escort Chile · Putas, cariñosas y acompañantes por ciudad";
   const description =
@@ -168,26 +192,23 @@ export function seoForCatalog(request) {
     description,
     keywords,
     canonical,
+    siteOrigin: origin,
+    googleSiteVerification: env?.GOOGLE_SITE_VERIFICATION || null,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: "Escort Chile",
       url: origin,
       description,
-      inLanguage: "es-CL",
-      potentialAction: {
-        "@type": "SearchAction",
-        target: `${origin}/?q={search_term_string}`,
-        "query-input": "required name=search_term_string"
-      }
+      inLanguage: "es-CL"
     }
   });
 
   return { seoHead, title, description };
 }
 
-export function seoForCasa(request, casa) {
-  const origin = getRequestOrigin(request);
+export function seoForCasa(request, env, casa) {
+  const origin = resolveSiteOrigin(request, env);
   const city = cityLabel(casa.ciudad);
   const canonical = `${origin}/${encodeURIComponent(casa.slug)}`;
   const title = `${casa.nombre} · Escort ${city} · Putas y cariñosas`;
@@ -205,6 +226,8 @@ export function seoForCasa(request, casa) {
     description,
     keywords,
     canonical,
+    siteOrigin: origin,
+    googleSiteVerification: env?.GOOGLE_SITE_VERIFICATION || null,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
@@ -227,8 +250,8 @@ export function seoForCasa(request, casa) {
   return { seoHead, title, description };
 }
 
-export function seoForModel(request, casa, model) {
-  const origin = getRequestOrigin(request);
+export function seoForModel(request, env, casa, model) {
+  const origin = resolveSiteOrigin(request, env);
   const city = cityLabel(model.ciudad || casa?.ciudad);
   const modelName = model.nombre || "Perfil";
   const casaSlug = casa?.slug || model?.casa_slug || "";
@@ -269,6 +292,8 @@ export function seoForModel(request, casa, model) {
     canonical,
     ogType: "profile",
     ogImage,
+    siteOrigin: origin,
+    googleSiteVerification: env?.GOOGLE_SITE_VERIFICATION || null,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "ProfilePage",
@@ -309,11 +334,21 @@ export function renderRobotsTxt(origin) {
   ].join("\n");
 }
 
-export async function renderSitemapXml(request, env, { listCasas, listAllModels }) {
-  const origin = getRequestOrigin(request);
+export async function renderSitemapXml(request, env, { listCasas, listAllModels, listCasaCiudades }) {
+  const origin = resolveSiteOrigin(request, env);
   const casas = await listCasas(env);
+  const activeSlugs = new Set(casas.map((casa) => casa.slug));
   const models = await listAllModels(env, {});
+  const ciudades = listCasaCiudades ? await listCasaCiudades(env) : [];
   const urls = [{ loc: `${origin}/`, changefreq: "daily", priority: "1.0" }];
+
+  for (const ciudad of ciudades) {
+    urls.push({
+      loc: `${origin}/?ciudad=${encodeURIComponent(ciudad)}`,
+      changefreq: "daily",
+      priority: "0.85"
+    });
+  }
 
   for (const casa of casas) {
     urls.push({
@@ -325,6 +360,10 @@ export async function renderSitemapXml(request, env, { listCasas, listAllModels 
 
   for (const model of models) {
     if (!model.id) {
+      continue;
+    }
+
+    if (model.casa_slug && !activeSlugs.has(model.casa_slug)) {
       continue;
     }
 

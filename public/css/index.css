@@ -114,6 +114,9 @@
   width: 100%;
   text-align: left;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: block;
   border-radius: 4px;
   padding: 28px 24px 22px;
   background: var(--surface);
@@ -189,6 +192,30 @@
 
 .casa-picker-empty {
   grid-column: 1 / -1;
+}
+
+.seo-city-nav {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+.seo-city-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seo-city-nav a {
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.seo-city-nav a:hover {
+  color: var(--gold-light);
 }
 
 .catalog-footer {

@@ -9,7 +9,8 @@
   },
   "vars": {
     "USE_MOCK_DB": "false",
-    "DEFAULT_CASA_SLUG": "casa-rocio"
+    "DEFAULT_CASA_SLUG": "casa-rocio",
+    "SITE_URL": "https://placeresvip.cl"
   },
   "r2_buckets": [
     {

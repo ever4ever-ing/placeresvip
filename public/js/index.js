@@ -41,12 +41,14 @@ function casaProfileUrl(slug) {
   return "/" + encodeURIComponent(slug);
 }
 
-function profileBase(model) {
+function profileUrlForModel(model) {
   if (!model?.casa_slug) {
-    return "/perfil";
+    return "/perfil/" + encodeURIComponent(model.id);
   }
 
-  return casaProfileUrl(model.casa_slug);
+  return (
+    casaProfileUrl(model.casa_slug) + "/perfil/" + encodeURIComponent(model.id)
+  );
 }
 
 function adminCasaUrl() {
@@ -105,7 +107,7 @@ function casaLabel(slug) {
 
 const renderCard = createCardRenderer({
   profileUrl(model) {
-    return profileBase(model) + "/" + encodeURIComponent(model.id);
+    return profileUrlForModel(model);
   },
   showCasaTag: () => false,
   casaLabel,

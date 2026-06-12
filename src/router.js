@@ -170,7 +170,7 @@ async function serveSuperAdmin() {
 }
 
 async function serveIndependentModelProfile(request, env, model) {
-  const { seoHead } = seoForModel(request, { slug: "", nombre: "Perfil independiente", ciudad: null }, model);
+  const { seoHead } = seoForModel(request, { slug: "", nombre: "Independientes", ciudad: null }, model);
   const html = withSeo(injectCatalogContext(modelHtml), seoHead);
   return htmlResponse(html);
 }

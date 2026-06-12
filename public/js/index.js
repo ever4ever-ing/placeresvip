@@ -82,6 +82,8 @@ const catalogEl = document.getElementById("models");
 const casaPickerEl = document.getElementById("casaPicker");
 const catalogSectionEl = document.getElementById("catalogSection");
 const heroFiltersEl = document.getElementById("heroFilters");
+const catalogNavEl = document.getElementById("catalogNav");
+const backToMenuBtnInline = document.getElementById("backToMenuBtnInline");
 const casaFilterInput = document.createElement("input");
 casaFilterInput.type = "hidden";
 casaFilterInput.id = "casaFilter";
@@ -137,9 +139,15 @@ function applyCasaBranding() {
   if (catalogTitle) {
     catalogTitle.textContent = selected
       ? isIndependentSelection()
-        ? "Perfiles independientes"
+        ? "Independientes"
         : "Perfiles de " + casaLabel(selected)
       : "Perfiles disponibles";
+  }
+
+  const navContext = document.getElementById("navContext");
+
+  if (navContext) {
+    navContext.textContent = selected ? casaLabel(selected) : "";
   }
 
   if (heroIntro) {
@@ -148,7 +156,7 @@ function applyCasaBranding() {
         "Explora perfiles por casa o revisa las chicas independientes.";
     } else if (isIndependentSelection()) {
       heroIntro.textContent =
-        "Perfiles sin casa asociada" + (ciudad ? " en " + ciudad : "") + ".";
+        "Catálogo de independientes" + (ciudad ? " en " + ciudad : "") + ".";
     } else {
       heroIntro.textContent =
         "Catálogo de " +
@@ -171,10 +179,21 @@ function applyCasaBranding() {
   }
 }
 
+function setCatalogNavVisible(visible) {
+  if (catalogNavEl) {
+    catalogNavEl.hidden = !visible;
+  }
+
+  if (backToMenuBtnInline) {
+    backToMenuBtnInline.hidden = !visible;
+  }
+}
+
 function showPicker() {
   casaPickerEl.hidden = false;
   catalogSectionEl.hidden = true;
   heroFiltersEl.hidden = true;
+  setCatalogNavVisible(false);
   casaFilterInput.value = "";
   document.getElementById("search").value = "";
   document.getElementById("ciudadFilter").value = "";
@@ -192,6 +211,7 @@ function showCatalog(slug) {
   casaPickerEl.hidden = true;
   catalogSectionEl.hidden = false;
   heroFiltersEl.hidden = false;
+  setCatalogNavVisible(true);
   applyCasaBranding();
   syncUrl();
 }
@@ -295,9 +315,9 @@ function renderIndependentCard() {
     '<button type="button" class="casa-card casa-card-independent" data-casa="' +
     INDEPENDENT_CASA +
     '">' +
-    '<span class="casa-card-eyebrow">Sin casa</span>' +
+    '<span class="casa-card-eyebrow">Catálogo</span>' +
     "<h3>Independientes</h3>" +
-    '<p class="casa-card-meta">Perfiles sin casa asociada</p>' +
+    '<p class="casa-card-meta">Ver perfiles disponibles</p>' +
     '<span class="casa-card-cta">Ver perfiles →</span>' +
     "</button>"
   );
@@ -385,9 +405,15 @@ document.getElementById("ciudadFilter").addEventListener("change", async () => {
   await loadModels();
 });
 
-document.getElementById("changeCasaBtn").addEventListener("click", () => {
+document.getElementById("backToMenuBtn").addEventListener("click", () => {
   showPicker();
 });
+
+if (backToMenuBtnInline) {
+  backToMenuBtnInline.addEventListener("click", () => {
+    showPicker();
+  });
+}
 
 document.getElementById("casaCards").addEventListener("click", (event) => {
   const card = event.target.closest("[data-casa]");

@@ -71,7 +71,7 @@ export function createCardRenderer(options) {
             "</a>"
         );
       } else {
-        tagItems.push('<span class="tag">Independiente</span>');
+        tagItems.push('<span class="tag">Independientes</span>');
       }
     }
 

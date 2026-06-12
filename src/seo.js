@@ -236,13 +236,13 @@ export function seoForModel(request, casa, model) {
   const canonical = isIndependent
     ? `${origin}/perfil/${encodeURIComponent(model.id)}`
     : `${origin}/${encodeURIComponent(casaSlug)}/perfil/${encodeURIComponent(model.id)}`;
-  const casaNombre = isIndependent ? "Perfil independiente" : casa.nombre;
+  const casaNombre = isIndependent ? "Independientes" : casa.nombre;
   const title = `${modelName} · Escort ${city} · ${casaNombre}`;
   const description = [
     `${modelName}, escort en ${city}.`,
     model.descripcion ? String(model.descripcion).trim() : "",
     isIndependent
-      ? "Perfil independiente. Escorts y cariñosas en Chile."
+      ? "Independientes. Escorts y cariñosas en Chile."
       : `Cariñosas y acompañantes de ${casaNombre}. Putas y escorts en Chile.`
   ]
     .filter(Boolean)

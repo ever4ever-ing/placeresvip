@@ -51,7 +51,7 @@
     <div class="super-row">
       <section class="panel">
         <h2>Nuevo perfil</h2>
-        <p class="subtle">Alta de chica en una casa o como perfil independiente.</p>
+        <p class="subtle">Alta de chica en una casa o en Independientes.</p>
         <form id="modelForm" class="form-grid">
           <select name="casa_slug" id="modelCasaSelect" required></select>
           <div class="split">
@@ -139,7 +139,7 @@ function getFotos(model){
 
 function casaLabel(slug){
   if(!slug){
-    return 'Independiente';
+    return 'Independientes';
   }
 
   const casa = casas.find(item => item.slug === slug);
@@ -224,7 +224,7 @@ async function loadModels(){
 function renderCasaOptions(){
   const select = document.getElementById('modelCasaSelect');
   const filter = document.getElementById('modelCasaFilter');
-  const options = ['<option value="independiente">Independiente (sin casa)</option>']
+  const options = ['<option value="independiente">Independientes</option>']
     .concat(casas.map(casa => (
       '<option value="' + escapeHtml(casa.slug) + '">' + escapeHtml(casa.nombre) + '</option>'
     )))

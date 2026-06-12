@@ -16,6 +16,17 @@
 
 <div class="shell">
 
+  <nav class="site-nav" id="catalogNav" hidden aria-label="Navegación del catálogo">
+    <button type="button" class="nav-back" id="backToMenuBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6"/>
+        <path d="M9 12h11"/>
+      </svg>
+      <span>Menú</span>
+    </button>
+    <p class="nav-context" id="navContext"></p>
+  </nav>
+
   <section class="hero">
     <div class="panel">
       <span class="hero-badge" id="casaBadge">Catálogo</span>
@@ -25,9 +36,6 @@
 
     <div class="hero-right" id="heroFilters" hidden>
       <div class="panel searchbox">
-        <div class="catalog-toolbar">
-          <button type="button" class="btn-text" id="changeCasaBtn">← Cambiar casa</button>
-        </div>
         <label for="search">Buscar perfil</label>
         <input id="search" type="search" placeholder="Nombre, ciudad, servicios, descripción...">
         <div class="filter-grid">
@@ -55,6 +63,13 @@
 
   <section class="catalog-section" id="catalogSection" hidden>
     <div class="section-head">
+      <button type="button" class="nav-back nav-back-inline" id="backToMenuBtnInline" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6"/>
+          <path d="M9 12h11"/>
+        </svg>
+        <span>Menú</span>
+      </button>
       <h2 id="catalogTitle">Perfiles disponibles</h2>
       <p id="modelCount" aria-live="polite">Selecciona una casa para ver perfiles.</p>
     </div>

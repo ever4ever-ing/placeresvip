@@ -13,14 +13,14 @@
 <div class="wrap">
   <section class="hero">
     <span class="eyebrow">Panel central</span>
-    <h1>AdministraciÃ³n general</h1>
+    <h1>Administración general</h1>
     <p>Gestiona todas las casas del negocio y los perfiles de cada una.</p>
   </section>
 
   <div id="login" class="login panel">
     <h2>Acceso reservado</h2>
-    <p class="subtle">Solo administraciÃ³n central. Ingresa la clave maestra.</p>
-    <input id="secret" type="password" placeholder="Clave de administraciÃ³n general">
+    <p class="subtle">Solo administración central. Ingresa la clave maestra.</p>
+    <input id="secret" type="password" placeholder="Clave de administración general">
     <div class="actions" style="margin-top:14px">
       <button type="button" onclick="login()">Entrar</button>
     </div>
@@ -35,7 +35,7 @@
           <input name="slug" placeholder="Slug (ej: casa-valparaiso)" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*">
           <input name="nombre" placeholder="Nombre visible" required>
           <input name="ciudad" placeholder="Ciudad" required>
-          <input name="telefonos" placeholder="TelÃ©fonos (separados por coma)" required>
+          <input name="telefonos" placeholder="Teléfonos (separados por coma)" required>
           <div class="actions"><button>Crear casa</button></div>
         </form>
       </section>
@@ -66,12 +66,12 @@
             <input name="ciudad" placeholder="Ciudad">
             <input name="whatsapp" placeholder="WhatsApp (+569...)">
           </div>
-          <textarea name="descripcion" placeholder="DescripciÃ³n" rows="3"></textarea>
+          <textarea name="descripcion" placeholder="Descripción" rows="3"></textarea>
           <textarea name="servicios" placeholder="Servicios separados por coma" rows="2"></textarea>
           <label class="upload-zone" id="createUploadZone">
             <input type="file" id="createFotoInput" name="foto" accept="image/*" multiple>
             <strong>Subir fotos</strong>
-            <span>Haz clic o arrastra imÃ¡genes</span>
+            <span>Haz clic o arrastra imágenes</span>
             <div class="upload-count" id="createUploadCount">0 fotos seleccionadas</div>
             <div class="photo-preview-grid" id="createPhotoPreview"></div>
           </label>
@@ -149,7 +149,7 @@ async function login(){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ secret })
   });
-  if(!res.ok){ alert('ContraseÃ±a incorrecta'); return; }
+  if(!res.ok){ alert('Contraseña incorrecta'); return; }
   const data = await res.json();
   token = data.token;
   localStorage.setItem(TOKEN_KEY, token);
@@ -232,7 +232,7 @@ function renderCasaList(){
   document.getElementById('casaCount').textContent = casas.length + ' casas';
   const root = document.getElementById('casaList');
   if(!casas.length){
-    root.innerHTML = '<div class="empty">TodavÃ­a no hay casas registradas.</div>';
+    root.innerHTML = '<div class="empty">Todavía no hay casas registradas.</div>';
     return;
   }
   root.innerHTML = casas.map(casa => (
@@ -240,22 +240,22 @@ function renderCasaList(){
       '<h3>' + escapeHtml(casa.nombre) + '</h3>' +
       '<div class="casa-meta">' +
         '<span class="tag">' + escapeHtml(casa.slug) + '</span> ' +
-        '<span>' + escapeHtml(valueOrDash(casa.ciudad)) + '</span> Â· ' +
+        '<span>' + escapeHtml(valueOrDash(casa.ciudad)) + '</span> · ' +
         '<span class="' + (casa.activa ? 'status-on' : 'status-off') + '">' + (casa.activa ? 'Activa' : 'Inactiva') + '</span>' +
       '</div>' +
       '<div class="form-grid">' +
         '<input data-field="nombre" value="' + escapeHtml(casa.nombre) + '" placeholder="Nombre">' +
         '<input data-field="ciudad" value="' + escapeHtml(casa.ciudad || '') + '" placeholder="Ciudad">' +
-        '<input data-field="telefonos" value="' + escapeHtml((casa.telefonos || []).join(', ')) + '" placeholder="TelÃ©fonos (separados por coma)">' +
+        '<input data-field="telefonos" value="' + escapeHtml((casa.telefonos || []).join(', ')) + '" placeholder="Teléfonos (separados por coma)">' +
         '<label class="subtle" style="margin:0"><input type="checkbox" data-field="activa"' + (casa.activa ? ' checked' : '') + '> Casa activa</label>' +
         '<input type="password" data-field="admin_secret" placeholder="Nueva clave admin casa (opcional)">' +
-        '<p class="subtle" style="margin:0">' + (casa.has_admin_secret ? 'Clave configurada para esta casa.' : 'Sin clave propia aÃºn: usa respaldo global o genera una nueva.') + '</p>' +
+        '<p class="subtle" style="margin:0">' + (casa.has_admin_secret ? 'Clave configurada para esta casa.' : 'Sin clave propia aún: usa respaldo global o genera una nueva.') + '</p>' +
       '</div>' +
       '<div class="casa-actions actions">' +
         '<button type="button" onclick="saveCasa(\'' + escapeHtml(casa.slug) + '\')">Guardar casa</button>' +
         '<button type="button" onclick="rotateCasaSecret(\'' + escapeHtml(casa.slug) + '\')">Generar clave nueva</button>' +
         '<a class="btn-secondary" href="/' + encodeURIComponent(casa.slug) + '/admin-casa" target="_blank" rel="noopener">Admin casa</a>' +
-        '<a class="btn-secondary" href="/' + encodeURIComponent(casa.slug) + '" target="_blank" rel="noopener">Ver catÃ¡logo</a>' +
+        '<a class="btn-secondary" href="/' + encodeURIComponent(casa.slug) + '" target="_blank" rel="noopener">Ver catálogo</a>' +
       '</div>' +
     '</article>'
   )).join('');
@@ -268,7 +268,7 @@ function showCasaSecretMessage(casaNombre, adminSecret){
 
   alert(
     'Clave admin para ' + casaNombre + ':\n\n' + adminSecret +
-    '\n\nGuÃ¡rdala ahora. No se volverÃ¡ a mostrar completa.'
+    '\n\nGuárdala ahora. No se volverá a mostrar completa.'
   );
 }
 
@@ -313,7 +313,7 @@ async function saveCasa(slug, options = {}){
 }
 
 async function rotateCasaSecret(slug){
-  if(!confirm('Â¿Generar una clave nueva para esta casa? La anterior dejarÃ¡ de funcionar.')){
+  if(!confirm('¿Generar una clave nueva para esta casa? La anterior dejará de funcionar.')){
     return;
   }
 
@@ -386,7 +386,7 @@ function renderModelList(){
               (services.length ? services.map(s => '<span class="tag">' + escapeHtml(s) + '</span>').join('') : '') +
             '</div>' +
             '<div class="upload-inline">' +
-              '<label for="fotos-' + model.id + '">AÃ±adir fotos</label>' +
+              '<label for="fotos-' + model.id + '">Añadir fotos</label>' +
               '<input type="file" id="fotos-' + model.id + '" accept="image/*" multiple onchange="addPhotos(' + model.id + ', this)">' +
             '</div>' +
             '<div class="actions">' +
@@ -464,7 +464,7 @@ document.getElementById('modelForm').addEventListener('submit', async event => {
     alert('Perfil guardado');
     return;
   }
-  if(res.status === 401){ alert('SesiÃ³n invÃ¡lida'); return; }
+  if(res.status === 401){ alert('Sesión inválida'); return; }
   let message = 'No se pudo guardar el perfil';
   try{ const data = await res.json(); if(data?.error) message = data.error; }catch(_e){}
   alert(message);
@@ -486,7 +486,7 @@ async function addPhotos(id, input){
 }
 
 async function deleteModel(id){
-  if(!confirm('Â¿Eliminar perfil?')) return;
+  if(!confirm('¿Eliminar perfil?')) return;
   const res = await fetch(api('/model/' + id), {
     method:'DELETE',
     headers:{ Authorization: token }

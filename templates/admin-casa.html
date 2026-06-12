@@ -17,8 +17,8 @@
   <section class="hero">
     <div>
       <span class="eyebrow" id="casaEyebrow">Admin casa</span>
-      <h1>GestiÃ³n de perfiles</h1>
-      <p>Administra las chicas de esta casa: altas, fotos y publicaciÃ³n en el catÃ¡logo.</p>
+      <h1>Gestión de perfiles</h1>
+      <p>Administra las chicas de esta casa: altas, fotos y publicación en el catálogo.</p>
     </div>
   </section>
 
@@ -55,13 +55,13 @@
           <input name="whatsapp" placeholder="WhatsApp (+569...)">
         </div>
 
-        <textarea name="descripcion" placeholder="DescripciÃ³n breve del perfil" rows="3"></textarea>
+        <textarea name="descripcion" placeholder="Descripción breve del perfil" rows="3"></textarea>
         <textarea name="servicios" placeholder="Servicios separados por coma" rows="3"></textarea>
 
         <label class="upload-zone" id="createUploadZone">
           <input type="file" id="createFotoInput" name="foto" accept="image/*" multiple>
           <strong>Subir fotos</strong>
-          <span>Haz clic o arrastra varias imÃ¡genes aquÃ­</span>
+          <span>Haz clic o arrastra varias imágenes aquí</span>
           <div class="upload-count" id="createUploadCount">0 fotos seleccionadas</div>
           <div class="photo-preview-grid" id="createPhotoPreview"></div>
         </label>
@@ -109,13 +109,13 @@ function casaBase(){
 function applyCasaBranding(){
   const casa = getCasa();
   const label = casa.nombre || casa.slug || 'Admin casa';
-  document.title = label + ' Â· GestiÃ³n';
+  document.title = label + ' · Gestión';
 
   const eyebrow = document.getElementById('casaEyebrow');
   const slugInput = document.getElementById('casaSlug');
 
   if(eyebrow){
-    eyebrow.textContent = label + ' Â· Privado';
+    eyebrow.textContent = label + ' · Privado';
   }
 
   if(slugInput && casa.slug && !slugInput.value){
@@ -222,7 +222,7 @@ async function login(){
   const sessionSlug = data.casa;
 
   if(!sessionSlug){
-    alert('No se pudo iniciar sesiÃ³n');
+    alert('No se pudo iniciar sesión');
     return;
   }
 
@@ -316,7 +316,7 @@ document.getElementById('form').addEventListener('submit', async event => {
     await loadModels();
     alert(selected.length > 1 ? 'Perfil guardado con ' + selected.length + ' fotos' : 'Perfil guardado');
   }else if(res.status === 401){
-    alert('SesiÃ³n invÃ¡lida');
+    alert('Sesión inválida');
   }else{
     let message = 'No se pudo guardar el perfil';
 
@@ -403,7 +403,7 @@ function renderAdminCard(model){
             : '') +
 
           '<div class="upload-inline">' +
-            '<label for="fotos-' + model.id + '">AÃ±adir mÃ¡s fotos al carrusel</label>' +
+            '<label for="fotos-' + model.id + '">Añadir más fotos al carrusel</label>' +
             '<input type="file" id="fotos-' + model.id + '" accept="image/*" multiple onchange="addPhotos(' + model.id + ', this)">' +
           '</div>' +
 
@@ -421,7 +421,7 @@ function renderAdminList(){
   document.getElementById('adminCount').textContent = adminModels.length + ' perfiles';
 
   if(adminModels.length === 0){
-    document.getElementById('list').innerHTML = '<div class="empty">TodavÃ­a no hay perfiles cargados.</div>';
+    document.getElementById('list').innerHTML = '<div class="empty">Todavía no hay perfiles cargados.</div>';
     return;
   }
 
@@ -491,12 +491,12 @@ async function addPhotos(id, input){
     const data = await res.json();
     const total = Array.isArray(data.fotos) ? data.fotos.length : files.length;
     loadModels();
-    alert(total > 1 ? 'Fotos actualizadas. Total: ' + total : 'Foto aÃ±adida');
+    alert(total > 1 ? 'Fotos actualizadas. Total: ' + total : 'Foto añadida');
     return;
   }
 
   if(res.status === 401){
-    alert('SesiÃ³n invÃ¡lida');
+    alert('Sesión inválida');
     return;
   }
 
@@ -527,7 +527,7 @@ async function deleteModel(id){
   if(res.ok){
     loadModels();
   }else if(res.status === 401){
-    alert('SesiÃ³n invÃ¡lida');
+    alert('Sesión inválida');
   }else{
     alert('No se pudo eliminar el perfil');
   }

@@ -14,7 +14,7 @@
 
 <div class="shell">
 
-  <a class="back" id="backLink" href="/">â† Volver a la casa</a>
+  <a class="back" id="backLink" href="/">← Volver a la casa</a>
 
   <div id="content">
     <div class="loading">Cargando perfil...</div>
@@ -68,7 +68,7 @@ function formatDate(value){
 }
 
 function valueOrDash(value){
-  return value === null || value === undefined || value === '' ? 'â€”' : value;
+  return value === null || value === undefined || value === '' ? '—' : value;
 }
 
 function photoSrc(foto){
@@ -119,7 +119,7 @@ function renderCarousel(fotos, nombre){
 
   const slides = fotos.map((foto, index) => (
     '<div class="carousel-slide">' +
-      '<img src="' + escapeHtml(photoSrc(foto)) + '" alt="' + escapeHtml(nombre) + ' â€” foto ' + (index + 1) + '">' +
+      '<img src="' + escapeHtml(photoSrc(foto)) + '" alt="' + escapeHtml(nombre) + ' — foto ' + (index + 1) + '">' +
     '</div>'
   )).join('');
 
@@ -128,8 +128,8 @@ function renderCarousel(fotos, nombre){
   )).join('');
 
   const controls = fotos.length > 1
-    ? '<button type="button" class="carousel-btn prev" aria-label="Foto anterior">â€¹</button>' +
-      '<button type="button" class="carousel-btn next" aria-label="Foto siguiente">â€º</button>' +
+    ? '<button type="button" class="carousel-btn prev" aria-label="Foto anterior">‹</button>' +
+      '<button type="button" class="carousel-btn next" aria-label="Foto siguiente">›</button>' +
       '<div class="carousel-footer">' +
         '<span class="carousel-counter">1 / ' + fotos.length + '</span>' +
         '<div class="carousel-dots">' + dots + '</div>' +
@@ -191,8 +191,8 @@ function renderProfile(model){
       '<div class="profile-media">' + renderCarousel(fotos, nombre) + '</div>' +
       '<div class="profile-body">' +
         '<span class="eyebrow">Escort ' + escapeHtml(city) + '</span>' +
-        '<h1>' + escapeHtml(valueOrDash(model.nombre)) + ' Â· Escort ' + escapeHtml(city) + '</h1>' +
-        '<p class="published">CariÃ±osas y acompaÃ±antes Â· ' + escapeHtml(getCasa().nombre || '') + '</p>' +
+        '<h1>' + escapeHtml(valueOrDash(model.nombre)) + ' · Escort ' + escapeHtml(city) + '</h1>' +
+        '<p class="published">Cariñosas y acompañantes · ' + escapeHtml(getCasa().nombre || '') + '</p>' +
         '<p class="published">Publicado ' + escapeHtml(formatDate(model.created_at)) + '</p>' +
         (model.descripcion
           ? '<p class="desc">' + escapeHtml(model.descripcion) + '</p>'
@@ -229,7 +229,7 @@ async function loadProfile(){
     const res = await fetch(apiBase() + '/model/' + encodeURIComponent(id), { cache: 'no-store' });
 
     if(res.status === 404){
-      container.innerHTML = '<div class="empty">Este perfil ya no estÃ¡ disponible.</div>';
+      container.innerHTML = '<div class="empty">Este perfil ya no está disponible.</div>';
       return;
     }
 

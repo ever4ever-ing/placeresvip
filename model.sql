@@ -28,7 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_casas_ciudad
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS models (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  casa_slug     TEXT NOT NULL,
+  casa_slug     TEXT,
   nombre        TEXT NOT NULL,
   edad          INTEGER,
   altura        INTEGER,

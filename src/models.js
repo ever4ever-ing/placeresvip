@@ -1,4 +1,5 @@
 export const CASA_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const INDEPENDENT_CASA_FILTER = "independiente";
 
 const MODEL_SELECT = `
   SELECT id, casa_slug, nombre, edad, altura, pelo, ciudad, whatsapp, descripcion, servicios, foto, fotos, created_at
@@ -156,6 +157,14 @@ export async function authenticateCasaAdmin(env, { casaSlug, secret, expectedSlu
     casa: normalizeCasa(casa),
     token: secretInput
   };
+}
+
+export function isIndependentCasaFilter(value) {
+  return value === INDEPENDENT_CASA_FILTER;
+}
+
+export function isIndependentModel(model) {
+  return !model?.casa_slug;
 }
 
 export function isValidCasaSlug(slug) {
@@ -337,7 +346,7 @@ export function normalizeModel(model) {
 
   return {
     id: model.id,
-    casa_slug: model.casa_slug || getDefaultCasaSlug({}),
+    casa_slug: model.casa_slug || null,
     nombre: model.nombre,
     edad: model.edad,
     altura: model.altura,
@@ -366,6 +375,10 @@ function sortModels(models) {
 }
 
 function matchesCasa(model, casaSlug) {
+  if (isIndependentCasaFilter(casaSlug)) {
+    return isIndependentModel(model);
+  }
+
   return !casaSlug || model.casa_slug === casaSlug;
 }
 
@@ -433,8 +446,12 @@ export async function listAllModels(env, filters) {
   const binds = [];
 
   if (casa) {
-    conditions.push("casa_slug = ?");
-    binds.push(casa);
+    if (isIndependentCasaFilter(casa)) {
+      conditions.push("(casa_slug IS NULL OR TRIM(casa_slug) = '')");
+    } else {
+      conditions.push("casa_slug = ?");
+      binds.push(casa);
+    }
   }
 
   if (ciudad) {
@@ -477,11 +494,15 @@ export async function listModelCiudades(env, casaSlug) {
     return [...ciudades].sort((left, right) => left.localeCompare(right, "es"));
   }
 
-  const query = casaSlug
+  const query = isIndependentCasaFilter(casaSlug)
+    ? `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE (casa_slug IS NULL OR TRIM(casa_slug) = '') AND ciudad IS NOT NULL AND TRIM(ciudad) != '' ORDER BY ciudad ASC`
+    : casaSlug
     ? `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE casa_slug = ? AND ciudad IS NOT NULL AND TRIM(ciudad) != '' ORDER BY ciudad ASC`
     : `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE ciudad IS NOT NULL AND TRIM(ciudad) != '' ORDER BY ciudad ASC`;
 
-  const { results } = casaSlug
+  const { results } = isIndependentCasaFilter(casaSlug)
+    ? await env.DB.prepare(query).all()
+    : casaSlug
     ? await env.DB.prepare(query).bind(casaSlug).all()
     : await env.DB.prepare(query).all();
 
@@ -507,7 +528,10 @@ export async function getModel(env, id, casaSlug) {
 
 export async function createModel(env, fields) {
   const fotos = fields.fotos ?? [];
-  const casaSlug = fields.casa_slug || getDefaultCasaSlug(env);
+  const hasCasaField = Object.prototype.hasOwnProperty.call(fields, "casa_slug");
+  const casaSlug = hasCasaField
+    ? fields.casa_slug || null
+    : getDefaultCasaSlug(env);
   const payload = {
     ...fields,
     casa_slug: casaSlug,

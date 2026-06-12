@@ -229,14 +229,21 @@ export function seoForCasa(request, casa) {
 
 export function seoForModel(request, casa, model) {
   const origin = getRequestOrigin(request);
-  const city = cityLabel(model.ciudad || casa.ciudad);
+  const city = cityLabel(model.ciudad || casa?.ciudad);
   const modelName = model.nombre || "Perfil";
-  const canonical = `${origin}/${encodeURIComponent(casa.slug)}/perfil/${encodeURIComponent(model.id)}`;
-  const title = `${modelName} · Escort ${city} · ${casa.nombre}`;
+  const casaSlug = casa?.slug || model?.casa_slug || "";
+  const isIndependent = !casaSlug;
+  const canonical = isIndependent
+    ? `${origin}/perfil/${encodeURIComponent(model.id)}`
+    : `${origin}/${encodeURIComponent(casaSlug)}/perfil/${encodeURIComponent(model.id)}`;
+  const casaNombre = isIndependent ? "Perfil independiente" : casa.nombre;
+  const title = `${modelName} · Escort ${city} · ${casaNombre}`;
   const description = [
     `${modelName}, escort en ${city}.`,
     model.descripcion ? String(model.descripcion).trim() : "",
-    `Cariñosas y acompañantes de ${casa.nombre}. Putas y escorts en Chile.`
+    isIndependent
+      ? "Perfil independiente. Escorts y cariñosas en Chile."
+      : `Cariñosas y acompañantes de ${casaNombre}. Putas y escorts en Chile.`
   ]
     .filter(Boolean)
     .join(" ")
@@ -248,7 +255,7 @@ export function seoForModel(request, casa, model) {
       `${modelName} escort`,
       `${modelName} ${city}`,
       `escort ${modelName}`,
-      casa.nombre
+      casaNombre
     ]
   });
 
@@ -317,7 +324,17 @@ export async function renderSitemapXml(request, env, { listCasas, listAllModels 
   }
 
   for (const model of models) {
-    if (!model.casa_slug || !model.id) {
+    if (!model.id) {
+      continue;
+    }
+
+    if (!model.casa_slug) {
+      urls.push({
+        loc: `${origin}/perfil/${encodeURIComponent(model.id)}`,
+        changefreq: "weekly",
+        priority: "0.75",
+        lastmod: model.created_at || null
+      });
       continue;
     }
 

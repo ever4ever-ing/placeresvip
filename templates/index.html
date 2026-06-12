@@ -18,13 +18,16 @@
 
   <section class="hero">
     <div class="panel">
-      <span class="hero-badge" id="casaBadge">Todas las casas</span>
-      <h1>Selección exclusiva</h1>
-      <p class="visually-hidden" id="heroIntro">Catálogo de escorts en Chile.</p>
+      <span class="hero-badge" id="casaBadge">Catálogo</span>
+      <h1 id="heroTitle">Selección exclusiva</h1>
+      <p id="heroIntro">Explora perfiles por casa o revisa las chicas independientes.</p>
     </div>
 
-    <div class="hero-right">
+    <div class="hero-right" id="heroFilters" hidden>
       <div class="panel searchbox">
+        <div class="catalog-toolbar">
+          <button type="button" class="btn-text" id="changeCasaBtn">← Cambiar casa</button>
+        </div>
         <label for="search">Buscar perfil</label>
         <input id="search" type="search" placeholder="Nombre, ciudad, servicios, descripción...">
         <div class="filter-grid">
@@ -34,26 +37,30 @@
               <option value="">Todas las ciudades</option>
             </select>
           </div>
-          <div>
-            <label for="casaFilter">Casa</label>
-            <select id="casaFilter">
-              <option value="">Todas las casas</option>
-            </select>
-          </div>
         </div>
         <a id="casaProfileLink" class="footnote casa-profile-link" href="#" hidden>Ver perfil de la casa →</a>
       </div>
     </div>
   </section>
 
-  <section class="catalog-section">
+  <section class="casa-picker" id="casaPicker">
     <div class="section-head">
-      <h2>Perfiles disponibles</h2>
-      <p id="modelCount" aria-live="polite">Cargando catálogo...</p>
+      <h2>Elige dónde ver perfiles</h2>
+      <p>Cada casa tiene su propio catálogo. También puedes ver chicas independientes.</p>
+    </div>
+    <div id="casaCards" class="casa-grid">
+      <div class="loading">Cargando casas...</div>
+    </div>
+  </section>
+
+  <section class="catalog-section" id="catalogSection" hidden>
+    <div class="section-head">
+      <h2 id="catalogTitle">Perfiles disponibles</h2>
+      <p id="modelCount" aria-live="polite">Selecciona una casa para ver perfiles.</p>
     </div>
 
     <main id="models" class="catalog">
-      <div class="loading">Cargando perfiles...</div>
+      <div class="empty">Selecciona una casa arriba para explorar su catálogo.</div>
     </main>
   </section>
 

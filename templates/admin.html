@@ -51,7 +51,7 @@
     <div class="super-row">
       <section class="panel">
         <h2>Nuevo perfil</h2>
-        <p class="subtle">Alta de chica en la casa que elijas.</p>
+        <p class="subtle">Alta de chica en una casa o como perfil independiente.</p>
         <form id="modelForm" class="form-grid">
           <select name="casa_slug" id="modelCasaSelect" required></select>
           <div class="split">
@@ -138,6 +138,10 @@ function getFotos(model){
 }
 
 function casaLabel(slug){
+  if(!slug){
+    return 'Independiente';
+  }
+
   const casa = casas.find(item => item.slug === slug);
   return casa ? casa.nombre : slug;
 }
@@ -220,11 +224,15 @@ async function loadModels(){
 function renderCasaOptions(){
   const select = document.getElementById('modelCasaSelect');
   const filter = document.getElementById('modelCasaFilter');
-  const options = casas.map(casa => (
+  const options = ['<option value="independiente">Independiente (sin casa)</option>']
+    .concat(casas.map(casa => (
+      '<option value="' + escapeHtml(casa.slug) + '">' + escapeHtml(casa.nombre) + '</option>'
+    )))
+    .join('');
+  const filterOptions = '<option value="">Todas las casas</option><option value="independiente">Independientes</option>' + casas.map(casa => (
     '<option value="' + escapeHtml(casa.slug) + '">' + escapeHtml(casa.nombre) + '</option>'
   )).join('');
-  const filterOptions = '<option value="">Todas las casas</option>' + options;
-  if(select) select.innerHTML = options || '<option value="">Sin casas</option>';
+  if(select) select.innerHTML = options;
   if(filter) filter.innerHTML = filterOptions;
 }
 
@@ -390,7 +398,11 @@ function renderModelList(){
               '<input type="file" id="fotos-' + model.id + '" accept="image/*" multiple onchange="addPhotos(' + model.id + ', this)">' +
             '</div>' +
             '<div class="actions">' +
-              '<a class="btn-secondary" href="/' + encodeURIComponent(model.casa_slug) + '/perfil/' + encodeURIComponent(model.id) + '" target="_blank" rel="noopener">Ver perfil</a>' +
+              '<a class="btn-secondary" href="' +
+              (model.casa_slug
+                ? '/' + encodeURIComponent(model.casa_slug) + '/perfil/' + encodeURIComponent(model.id)
+                : '/perfil/' + encodeURIComponent(model.id)) +
+              '" target="_blank" rel="noopener">Ver perfil</a>' +
               '<button class="danger" type="button" onclick="deleteModel(' + model.id + ')">Eliminar</button>' +
             '</div>' +
           '</div>' +

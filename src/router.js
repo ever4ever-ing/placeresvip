@@ -31,7 +31,8 @@ import {
   authenticateCasaAdmin,
   verifyCasaAdminSecret,
   getDefaultCasaSlug,
-  isValidCasaSlug
+  isValidCasaSlug,
+  isIndependentCasaFilter
 } from "./models.js";
 
 async function uploadImages(env, files) {
@@ -166,6 +167,12 @@ async function serveAdminCasa(request, casa) {
 
 async function serveSuperAdmin() {
   return htmlResponse(withSeo(adminHtml, seoNoIndex("Administración general")));
+}
+
+async function serveIndependentModelProfile(request, env, model) {
+  const { seoHead } = seoForModel(request, { slug: "", nombre: "Perfil independiente", ciudad: null }, model);
+  const html = withSeo(injectCatalogContext(modelHtml), seoHead);
+  return htmlResponse(html);
 }
 
 async function serveModelProfile(request, env, casa, modelId) {
@@ -407,17 +414,22 @@ async function handleSuperAdminApi(request, env, segments) {
       const casaSlug = String(form.get("casa_slug") ?? "").trim().toLowerCase();
       const files = form.getAll("foto").filter((file) => file && file.size > 0);
 
-      if (!isValidCasaSlug(casaSlug)) {
-        return Response.json({ ok: false, error: "Selecciona una casa válida." }, { status: 400 });
+      if (isIndependentCasaFilter(casaSlug)) {
+        fields.casa_slug = null;
+      } else if (isValidCasaSlug(casaSlug)) {
+        const casa = await getCasa(env, casaSlug);
+
+        if (!casa) {
+          return Response.json({ ok: false, error: "La casa no existe." }, { status: 400 });
+        }
+
+        fields.casa_slug = casa.slug;
+      } else {
+        return Response.json(
+          { ok: false, error: "Selecciona una casa válida o la opción independiente." },
+          { status: 400 }
+        );
       }
-
-      const casa = await getCasa(env, casaSlug);
-
-      if (!casa) {
-        return Response.json({ ok: false, error: "La casa no existe." }, { status: 400 });
-      }
-
-      fields.casa_slug = casa.slug;
 
       if (files.length > 0) {
         if (!env.IMAGES) {
@@ -565,6 +577,23 @@ export async function handleRequest(request, env) {
     }
   }
 
+  if (
+    segments[0] === "api" &&
+    segments[1] === "catalog" &&
+    segments[2] === "model" &&
+    segments[3] &&
+    request.method === "GET" &&
+    segments.length === 4
+  ) {
+    const model = await getModel(env, segments[3], null);
+
+    if (!model) {
+      return notFound();
+    }
+
+    return Response.json(model, JSON_NO_STORE);
+  }
+
   if (segments[0] === "api" && segments[1] === "admin") {
     const response = await handleSuperAdminApi(request, env, segments);
 
@@ -631,13 +660,23 @@ export async function handleRequest(request, env) {
   const legacyProfile = pathname.match(/^\/perfil\/([^/]+)$/);
 
   if (legacyProfile) {
-    const casa = await resolveActiveCasa(env, defaultCasaSlug);
+    const model = await getModel(env, legacyProfile[1], null);
 
-    if (!casa) {
+    if (!model) {
       return notFound();
     }
 
-    return serveModelProfile(request, env, casa, legacyProfile[1]);
+    if (model.casa_slug) {
+      const casa = await resolveActiveCasa(env, model.casa_slug);
+
+      if (!casa) {
+        return notFound();
+      }
+
+      return serveModelProfile(request, env, casa, legacyProfile[1]);
+    }
+
+    return serveIndependentModelProfile(request, env, model);
   }
 
   if (segments.length >= 1 && !RESERVED_TOP_LEVEL.has(segments[0]) && isValidCasaSlug(segments[0])) {

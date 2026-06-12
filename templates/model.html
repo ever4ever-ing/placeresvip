@@ -32,13 +32,28 @@ function applyCasaBranding(){
   const casa = getCasa();
   const back = document.getElementById('backLink');
 
-  if(back && casa.slug){
-    back.href = '/' + encodeURIComponent(casa.slug);
+  if(!back){
+    return;
   }
+
+  if(casa.slug){
+    back.href = '/' + encodeURIComponent(casa.slug);
+    back.textContent = '← Volver a la casa';
+    return;
+  }
+
+  back.href = '/?casa=independiente';
+  back.textContent = '← Volver al catálogo';
 }
 
-function apiBase(){
-  return '/api/' + encodeURIComponent(getCasa().slug);
+function modelApiUrl(id){
+  const casa = getCasa();
+
+  if(casa.slug){
+    return '/api/' + encodeURIComponent(casa.slug) + '/model/' + encodeURIComponent(id);
+  }
+
+  return '/api/catalog/model/' + encodeURIComponent(id);
 }
 
 function escapeHtml(value){
@@ -192,7 +207,11 @@ function renderProfile(model){
       '<div class="profile-body">' +
         '<span class="eyebrow">Escort ' + escapeHtml(city) + '</span>' +
         '<h1>' + escapeHtml(valueOrDash(model.nombre)) + ' · Escort ' + escapeHtml(city) + '</h1>' +
-        '<p class="published">Cariñosas y acompañantes · ' + escapeHtml(getCasa().nombre || '') + '</p>' +
+        '<p class="published">' +
+        (getCasa().slug
+          ? 'Cariñosas y acompañantes · ' + escapeHtml(getCasa().nombre || '')
+          : 'Perfil independiente') +
+        '</p>' +
         '<p class="published">Publicado ' + escapeHtml(formatDate(model.created_at)) + '</p>' +
         (model.descripcion
           ? '<p class="desc">' + escapeHtml(model.descripcion) + '</p>'
@@ -226,7 +245,7 @@ async function loadProfile(){
   }
 
   try{
-    const res = await fetch(apiBase() + '/model/' + encodeURIComponent(id), { cache: 'no-store' });
+    const res = await fetch(modelApiUrl(id), { cache: 'no-store' });
 
     if(res.status === 404){
       container.innerHTML = '<div class="empty">Este perfil ya no está disponible.</div>';

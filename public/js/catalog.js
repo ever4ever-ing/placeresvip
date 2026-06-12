@@ -62,13 +62,17 @@ export function createCardRenderer(options) {
     const tagItems = [];
 
     if (showCasaTag()) {
-      tagItems.push(
-        '<a class="tag" href="' +
-          casaProfileUrl(model.casa_slug) +
-          '">' +
-          escapeHtml(casaLabel(model.casa_slug)) +
-          "</a>"
-      );
+      if (model.casa_slug) {
+        tagItems.push(
+          '<a class="tag" href="' +
+            casaProfileUrl(model.casa_slug) +
+            '">' +
+            escapeHtml(casaLabel(model.casa_slug)) +
+            "</a>"
+        );
+      } else {
+        tagItems.push('<span class="tag">Independiente</span>');
+      }
     }
 
     services.forEach((service) => {

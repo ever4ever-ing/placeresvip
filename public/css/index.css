@@ -73,6 +73,128 @@
   font-weight: 500;
 }
 
+.catalog-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 14px;
+}
+
+.btn-text {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--gold-light);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.btn-text:hover {
+  opacity: 1;
+  color: #fff;
+}
+
+.casa-picker {
+  margin-bottom: 28px;
+}
+
+.casa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.casa-card {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 28px 24px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.casa-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 98, 0.45), transparent);
+}
+
+.casa-card:hover,
+.casa-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(201, 169, 98, 0.35);
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.5),
+    0 0 40px var(--glow);
+  outline: none;
+}
+
+.casa-card-eyebrow {
+  display: inline-flex;
+  padding: 6px 10px;
+  background: var(--gold-dim);
+  color: var(--gold-light);
+  border: 1px solid var(--line);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.casa-card h3 {
+  margin: 16px 0 8px;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.85rem;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.casa-card-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.casa-card-cta {
+  display: inline-block;
+  margin-top: 18px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.casa-card-independent {
+  background: linear-gradient(145deg, rgba(28, 18, 22, 0.92), rgba(18, 12, 15, 0.88));
+}
+
+.casa-picker-empty {
+  grid-column: 1 / -1;
+}
+
 .catalog-footer {
   margin-top: 12px;
   display: flex;
@@ -134,6 +256,19 @@
 @media (max-width: 640px) {
   .filter-grid {
     grid-template-columns: 1fr;
+  }
+
+  .casa-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .casa-card {
+    padding: 22px 18px 18px;
+  }
+
+  .casa-card h3 {
+    font-size: 1.55rem;
   }
 
   .hero-badge {

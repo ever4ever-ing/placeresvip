@@ -91,42 +91,9 @@ function renderModels() {
   document.getElementById("models").innerHTML = filtered.map(renderCard).join("");
 }
 
-async function loadCiudades() {
-  const casa = getCasa().slug;
-  if (!casa) {
-    return;
-  }
-
-  const res = await fetch(
-    "/api/catalog/models/ciudades?casa=" + encodeURIComponent(casa),
-    { cache: "no-store" }
-  );
-  const ciudades = res.ok ? await res.json() : [];
-  const select = document.getElementById("ciudadFilter");
-  const current = select.value || "";
-
-  select.innerHTML = ['<option value="">Todas las ciudades</option>']
-    .concat(
-      (Array.isArray(ciudades) ? ciudades : []).map(
-        (ciudad) =>
-          '<option value="' + escapeHtml(ciudad) + '">' + escapeHtml(ciudad) + "</option>"
-      )
-    )
-    .join("");
-
-  if (current && ciudades.includes(current)) {
-    select.value = current;
-  }
-}
-
 async function loadModels() {
   const casa = getCasa().slug;
-  const ciudad = document.getElementById("ciudadFilter").value;
   const params = new URLSearchParams({ casa });
-
-  if (ciudad) {
-    params.set("ciudad", ciudad);
-  }
 
   document.getElementById("models").innerHTML = '<div class="loading">Cargando perfiles...</div>';
 
@@ -144,12 +111,10 @@ async function loadModels() {
 }
 
 document.getElementById("search").addEventListener("input", renderModels);
-document.getElementById("ciudadFilter").addEventListener("change", loadModels);
 
 async function boot() {
   bindCatalogCards(document.getElementById("models"));
   applyCasaBranding();
-  await loadCiudades();
   await loadModels();
 }
 

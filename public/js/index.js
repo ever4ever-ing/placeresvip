@@ -11,21 +11,26 @@ function getSelectedCasaSlug() {
   return document.getElementById("casaFilter")?.value || "";
 }
 
+function getSelectedCiudad() {
+  return document.getElementById("ciudadFilter")?.value || "";
+}
+
 function isIndependentSelection() {
   return getSelectedCasaSlug() === INDEPENDENT_CASA;
+}
+
+function normalizeCity(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function catalogApi(path) {
   const params = new URLSearchParams();
   const casa = getSelectedCasaSlug();
-  const ciudad = document.getElementById("ciudadFilter")?.value || "";
 
   if (casa) {
     params.set("casa", casa);
-  }
-
-  if (ciudad) {
-    params.set("ciudad", ciudad);
   }
 
   const query = params.toString();
@@ -81,7 +86,7 @@ let allModels = [];
 const catalogEl = document.getElementById("models");
 const casaPickerEl = document.getElementById("casaPicker");
 const catalogSectionEl = document.getElementById("catalogSection");
-const heroFiltersEl = document.getElementById("heroFilters");
+const pickerFiltersEl = document.getElementById("pickerFilters");
 const catalogNavEl = document.getElementById("catalogNav");
 const backToMenuBtnInline = document.getElementById("backToMenuBtnInline");
 const casaFilterInput = document.createElement("input");
@@ -109,12 +114,19 @@ const renderCard = createCardRenderer({
 
 function syncUrl() {
   const slug = getSelectedCasaSlug();
+  const ciudad = getSelectedCiudad();
   const url = new URL(window.location.href);
 
   if (slug) {
     url.searchParams.set("casa", slug);
   } else {
     url.searchParams.delete("casa");
+  }
+
+  if (!slug && ciudad) {
+    url.searchParams.set("ciudad", ciudad);
+  } else {
+    url.searchParams.delete("ciudad");
   }
 
   window.history.replaceState({}, "", url);
@@ -126,10 +138,10 @@ function applyCasaBranding() {
   const heroTitle = document.getElementById("heroTitle");
   const heroIntro = document.getElementById("heroIntro");
   const catalogTitle = document.getElementById("catalogTitle");
-  const ciudad = document.getElementById("ciudadFilter")?.value || "";
+  const ciudad = getSelectedCiudad();
 
   if (badge) {
-    badge.textContent = selected ? casaLabel(selected) : "Catálogo";
+    badge.textContent = selected ? casaLabel(selected) : ciudad ? ciudad : "Catálogo";
   }
 
   if (heroTitle) {
@@ -151,18 +163,20 @@ function applyCasaBranding() {
   }
 
   if (heroIntro) {
-    if (!selected) {
-      heroIntro.textContent =
-        "Explora perfiles por casa o revisa las chicas independientes.";
-    } else if (isIndependentSelection()) {
-      heroIntro.textContent =
-        "Catálogo de independientes" + (ciudad ? " en " + ciudad : "") + ".";
+    if (selected) {
+      if (isIndependentSelection()) {
+        heroIntro.textContent = "Catálogo de independientes.";
+      } else {
+        heroIntro.textContent =
+          "Catálogo de " +
+          casaLabel(selected) +
+          ". Escorts, cariñosas y acompañantes en Chile.";
+      }
+    } else if (ciudad) {
+      heroIntro.textContent = "Casas y perfiles en " + ciudad + ".";
     } else {
       heroIntro.textContent =
-        "Catálogo de " +
-        casaLabel(selected) +
-        (ciudad ? " en " + ciudad : "") +
-        ". Escorts, cariñosas y acompañantes en Chile.";
+        "Elige una ciudad o explora perfiles por casa e independientes.";
     }
   }
 }
@@ -177,18 +191,24 @@ function setCatalogNavVisible(visible) {
   }
 }
 
+function setPickerFiltersVisible(visible) {
+  if (pickerFiltersEl) {
+    pickerFiltersEl.hidden = !visible;
+  }
+}
+
 function showPicker() {
   casaPickerEl.hidden = false;
   catalogSectionEl.hidden = true;
-  heroFiltersEl.hidden = true;
+  setPickerFiltersVisible(true);
   setCatalogNavVisible(false);
   casaFilterInput.value = "";
-  document.getElementById("ciudadFilter").value = "";
   allModels = [];
   catalogEl.innerHTML =
     '<div class="empty">Selecciona una casa arriba para explorar su catálogo.</div>';
   updateModelCount(null);
   renderCatalogFooter("");
+  renderCasaPicker();
   applyCasaBranding();
   syncUrl();
 }
@@ -197,10 +217,9 @@ async function showCatalog(slug) {
   casaFilterInput.value = slug;
   casaPickerEl.hidden = true;
   catalogSectionEl.hidden = false;
-  heroFiltersEl.hidden = false;
+  setPickerFiltersVisible(false);
   setCatalogNavVisible(true);
   applyCasaBranding();
-  await updateCiudadOptions();
   syncUrl();
 }
 
@@ -242,6 +261,17 @@ function getCasaCiudades() {
   ].sort((left, right) => left.localeCompare(right, "es"));
 }
 
+function casasForPicker() {
+  const ciudad = getSelectedCiudad();
+
+  if (!ciudad) {
+    return casas;
+  }
+
+  const target = normalizeCity(ciudad);
+  return casas.filter((casa) => normalizeCity(casa.ciudad) === target);
+}
+
 async function refreshCasasFromApi() {
   try {
     const res = await fetch("/api/casas", { cache: "no-store" });
@@ -259,12 +289,9 @@ async function refreshCasasFromApi() {
   }
 }
 
-async function fetchCasaCiudades(casaSlug) {
-  const url =
-    "/api/casas/ciudades" + (casaSlug ? "?casa=" + encodeURIComponent(casaSlug) : "");
-
+async function fetchCasaCiudades() {
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch("/api/casas/ciudades", { cache: "no-store" });
 
     if (!res.ok) {
       return [];
@@ -274,26 +301,6 @@ async function fetchCasaCiudades(casaSlug) {
     return Array.isArray(ciudades) ? ciudades : [];
   } catch (error) {
     console.error("Error cargando ciudades de casas:", error);
-    return [];
-  }
-}
-
-async function fetchModelCiudades(casaSlug) {
-  const url =
-    "/api/catalog/models/ciudades" +
-    (casaSlug ? "?casa=" + encodeURIComponent(casaSlug) : "");
-
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-
-    if (!res.ok) {
-      return [];
-    }
-
-    const ciudades = await res.json();
-    return Array.isArray(ciudades) ? ciudades : [];
-  } catch (error) {
-    console.error("Error cargando ciudades:", error);
     return [];
   }
 }
@@ -316,25 +323,11 @@ function renderCiudadSelect(ciudades) {
 }
 
 async function updateCiudadOptions() {
-  const selected = getSelectedCasaSlug();
-  let ciudades = [];
+  await refreshCasasFromApi();
+  let ciudades = getCasaCiudades();
 
-  if (isIndependentSelection()) {
-    ciudades = await fetchModelCiudades(INDEPENDENT_CASA);
-  } else {
-    await refreshCasasFromApi();
-    ciudades = getCasaCiudades();
-
-    if (!ciudades.length) {
-      ciudades = await fetchCasaCiudades(null);
-    }
-
-    if (selected) {
-      const fromModels = await fetchModelCiudades(selected);
-      ciudades = [...new Set(ciudades.concat(fromModels))].sort((left, right) =>
-        left.localeCompare(right, "es")
-      );
-    }
+  if (!ciudades.length) {
+    ciudades = await fetchCasaCiudades();
   }
 
   renderCiudadSelect(ciudades);
@@ -374,6 +367,8 @@ function renderIndependentCard() {
 
 function renderCasaPicker() {
   const root = document.getElementById("casaCards");
+  const visibleCasas = casasForPicker();
+  const ciudad = getSelectedCiudad();
 
   if (!casas.length) {
     root.innerHTML =
@@ -382,25 +377,20 @@ function renderCasaPicker() {
     return;
   }
 
-  root.innerHTML = casas.map(renderCasaCard).join("") + renderIndependentCard();
+  const cards = visibleCasas.map(renderCasaCard).join("");
+  const emptyMessage = ciudad
+    ? '<div class="empty casa-picker-empty">No hay casas en ' +
+      escapeHtml(ciudad) +
+      ".</div>"
+    : "";
+
+  root.innerHTML = cards + renderIndependentCard() + emptyMessage;
 }
 
 async function loadCasas() {
   try {
-    const res = await fetch("/api/casas", { cache: "no-store" });
-
-    if (!res.ok) {
-      casas = [];
-      renderCasaPicker();
-      return;
-    }
-
-    casas = await res.json();
-
-    if (!Array.isArray(casas)) {
-      casas = [];
-    }
-
+    await refreshCasasFromApi();
+    await updateCiudadOptions();
     renderCasaPicker();
     applyCasaBranding();
   } catch (error) {
@@ -431,7 +421,6 @@ async function loadModels() {
 
     const models = await res.json();
     allModels = Array.isArray(models) ? models : [];
-    await updateCiudadOptions();
     applyCasaBranding();
     renderModels();
   } catch (error) {
@@ -447,9 +436,10 @@ async function selectCasa(slug) {
   await loadModels();
 }
 
-document.getElementById("ciudadFilter").addEventListener("change", async () => {
+document.getElementById("ciudadFilter").addEventListener("change", () => {
+  renderCasaPicker();
   applyCasaBranding();
-  await loadModels();
+  syncUrl();
 });
 
 document.getElementById("backToMenuBtn").addEventListener("click", () => {
@@ -471,6 +461,10 @@ document.getElementById("casaCards").addEventListener("click", (event) => {
 
   selectCasa(card.dataset.casa);
 });
+
+function readInitialCiudad() {
+  return new URLSearchParams(window.location.search).get("ciudad") || "";
+}
 
 function readInitialCasa() {
   const fromQuery = new URLSearchParams(window.location.search).get("casa");
@@ -495,6 +489,19 @@ function readInitialCasa() {
 async function bootCatalog() {
   bindCatalogCards(catalogEl);
   await loadCasas();
+
+  const initialCiudad = readInitialCiudad();
+  const ciudadSelect = document.getElementById("ciudadFilter");
+
+  if (initialCiudad && ciudadSelect) {
+    const ciudades = getCasaCiudades();
+
+    if (ciudades.includes(initialCiudad)) {
+      ciudadSelect.value = initialCiudad;
+    }
+  }
+
+  renderCasaPicker();
 
   const initial = readInitialCasa();
 

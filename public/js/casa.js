@@ -1,4 +1,4 @@
-import { escapeHtml, formatModelCount } from "./lib.js";
+import { escapeHtml, formatModelCount, whatsAppUrl } from "./lib.js";
 import { bindCatalogCards, createCardRenderer } from "./catalog.js";
 
 function getCasa() {
@@ -19,8 +19,8 @@ function renderPhoneLinks(telefonos) {
       const digits = phoneDigits(phone);
       const label = escapeHtml(phone);
       const wa = digits
-        ? '<a class="whatsapp-link" href="https://wa.me/' +
-          escapeHtml(digits) +
+        ? '<a class="whatsapp-link" href="' +
+          escapeHtml(whatsAppUrl(phone)) +
           '" target="_blank" rel="noopener">WhatsApp ' +
           label +
           "</a>"

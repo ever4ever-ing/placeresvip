@@ -30,7 +30,8 @@
 
 </div>
 
-<script>
+<script type="module">
+import { whatsAppUrl } from '/js/lib.js';
 
 function getCasa(){
   return window.__CASA__ || { slug: '', nombre: '', ciudad: null, telefonos: [] };
@@ -209,7 +210,7 @@ function renderProfile(model){
   const nombre = valueOrDash(model.nombre);
 
   const whatsapp = model.whatsapp
-    ? '<a class="whatsapp-link" href="https://wa.me/' + escapeHtml(String(model.whatsapp).replace(/\D/g, '')) + '" target="_blank" rel="noopener">Contactar por WhatsApp</a>'
+    ? '<a class="whatsapp-link" href="' + escapeHtml(whatsAppUrl(model.whatsapp)) + '" target="_blank" rel="noopener">Contactar por WhatsApp</a>'
     : '';
 
   const city = valueOrDash(model.ciudad || getCasa().ciudad);

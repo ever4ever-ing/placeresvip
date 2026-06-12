@@ -60,3 +60,16 @@ export function formatModelCount(total) {
     (total === 1 ? "" : "s")
   );
 }
+
+export const WHATSAPP_LEAD_MESSAGE = "Hola, te vi en placeresvip.cl";
+
+export function whatsAppUrl(phone, message = WHATSAPP_LEAD_MESSAGE) {
+  const digits = String(phone ?? "").replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  const params = message ? `?text=${encodeURIComponent(message)}` : "";
+  return `https://wa.me/${digits}${params}`;
+}

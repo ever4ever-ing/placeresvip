@@ -334,6 +334,32 @@ export function renderRobotsTxt(origin) {
   ].join("\n");
 }
 
+export function formatSitemapLastmod(value) {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  const sqliteMatch = raw.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/);
+
+  if (sqliteMatch) {
+    return `${sqliteMatch[1]}T${sqliteMatch[2]}Z`;
+  }
+
+  const parsed = new Date(raw);
+
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString();
+  }
+
+  return null;
+}
+
 export async function renderSitemapXml(request, env, { listCasas, listAllModels, listCasaCiudades }) {
   const origin = resolveSiteOrigin(request, env);
   const casas = await listCasas(env);
@@ -372,7 +398,7 @@ export async function renderSitemapXml(request, env, { listCasas, listAllModels,
         loc: `${origin}/perfil/${encodeURIComponent(model.id)}`,
         changefreq: "weekly",
         priority: "0.75",
-        lastmod: model.created_at || null
+        lastmod: formatSitemapLastmod(model.created_at)
       });
       continue;
     }
@@ -381,7 +407,7 @@ export async function renderSitemapXml(request, env, { listCasas, listAllModels,
       loc: `${origin}/${encodeURIComponent(model.casa_slug)}/perfil/${encodeURIComponent(model.id)}`,
       changefreq: "weekly",
       priority: "0.8",
-      lastmod: model.created_at || null
+      lastmod: formatSitemapLastmod(model.created_at)
     });
   }
 

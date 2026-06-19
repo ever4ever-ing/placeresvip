@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS models (
   servicios     TEXT,                    -- separados por coma
   foto          TEXT,                    -- clave R2 o URL (miniatura)
   fotos         TEXT,                    -- JSON: ["clave-o-url", ...]
+  activa        INTEGER NOT NULL DEFAULT 1,
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (casa_slug) REFERENCES casas (slug)
 );
@@ -52,6 +53,9 @@ CREATE INDEX IF NOT EXISTS idx_models_casa_created
 
 CREATE INDEX IF NOT EXISTS idx_models_ciudad
   ON models (ciudad);
+
+CREATE INDEX IF NOT EXISTS idx_models_casa_activa
+  ON models (casa_slug, activa);
 
 CREATE INDEX IF NOT EXISTS idx_models_created_at
   ON models (created_at DESC, id DESC);

@@ -2,7 +2,7 @@ export const CASA_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const INDEPENDENT_CASA_FILTER = "independiente";
 
 const MODEL_SELECT = `
-  SELECT id, casa_slug, nombre, edad, altura, pelo, ciudad, whatsapp, descripcion, servicios, foto, fotos, created_at
+  SELECT id, casa_slug, nombre, edad, altura, pelo, ciudad, whatsapp, descripcion, servicios, foto, fotos, activa, created_at
   FROM models
 `;
 
@@ -166,6 +166,10 @@ export function isIndependentCasaFilter(value) {
 
 export function isIndependentModel(model) {
   return !model?.casa_slug;
+}
+
+export function isModelActiva(model) {
+  return model?.activa !== 0 && model?.activa !== false;
 }
 
 export function isValidCasaSlug(slug) {
@@ -387,6 +391,7 @@ export function normalizeModel(model) {
     servicios: model.servicios,
     fotos,
     foto: fotos[0] ?? null,
+    activa: isModelActiva(model),
     created_at: model.created_at
   };
 }
@@ -439,17 +444,18 @@ function matchesCiudad(model, ciudad, casaSlug, casasBySlug) {
 
 function normalizeModelFilters(filters) {
   if (!filters) {
-    return { casa: null, ciudad: null, casaCiudad: null };
+    return { casa: null, ciudad: null, casaCiudad: null, activeOnly: true };
   }
 
   if (typeof filters === "string") {
-    return { casa: filters, ciudad: null, casaCiudad: null };
+    return { casa: filters, ciudad: null, casaCiudad: null, activeOnly: true };
   }
 
   return {
     casa: filters.casa || null,
     ciudad: filters.ciudad || null,
-    casaCiudad: filters.casaCiudad || null
+    casaCiudad: filters.casaCiudad || null,
+    activeOnly: filters.activeOnly !== false
   };
 }
 
@@ -469,18 +475,23 @@ function matchesCasaCiudad(model, casaCiudad, casasBySlug) {
   );
 }
 
-export async function listModels(env, casaSlug, ciudad) {
+export async function listModels(env, casaSlug, ciudad, options = {}) {
   const slug = casaSlug || getDefaultCasaSlug(env);
-  return listAllModels(env, { casa: slug, ciudad: ciudad || null });
+  return listAllModels(env, {
+    casa: slug,
+    ciudad: ciudad || null,
+    ...options
+  });
 }
 
 export async function listAllModels(env, filters) {
-  const { casa, ciudad, casaCiudad } = normalizeModelFilters(filters);
+  const { casa, ciudad, casaCiudad, activeOnly } = normalizeModelFilters(filters);
 
   if (useMockDb(env)) {
     const casasBySlug = new Map(mockCasas.map((item) => [item.slug, item]));
     const models = mockModels.filter(
       (model) =>
+        (!activeOnly || isModelActiva(model)) &&
         matchesCasa(model, casa) &&
         matchesCiudad(model, ciudad, casa, casasBySlug) &&
         matchesCasaCiudad(model, casaCiudad, casasBySlug)
@@ -491,6 +502,10 @@ export async function listAllModels(env, filters) {
 
   const conditions = [];
   const binds = [];
+
+  if (activeOnly) {
+    conditions.push("activa = 1");
+  }
 
   if (casa) {
     if (isIndependentCasaFilter(casa)) {
@@ -536,12 +551,18 @@ export async function listAllModels(env, filters) {
   return results.map(normalizeModel);
 }
 
-export async function listModelCiudades(env, casaSlug) {
+export async function listModelCiudades(env, casaSlug, options = {}) {
+  const activeOnly = options.activeOnly !== false;
+
   if (useMockDb(env)) {
     const ciudades = new Set();
 
     for (const model of mockModels) {
       if (!matchesCasa(model, casaSlug)) {
+        continue;
+      }
+
+      if (activeOnly && !isModelActiva(model)) {
         continue;
       }
 
@@ -555,11 +576,12 @@ export async function listModelCiudades(env, casaSlug) {
     return [...ciudades].sort((left, right) => left.localeCompare(right, "es"));
   }
 
+  const activeClause = activeOnly ? " AND activa = 1" : "";
   const query = isIndependentCasaFilter(casaSlug)
-    ? `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE (casa_slug IS NULL OR TRIM(casa_slug) = '') AND ciudad IS NOT NULL AND TRIM(ciudad) != '' ORDER BY ciudad ASC`
+    ? `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE (casa_slug IS NULL OR TRIM(casa_slug) = '') AND ciudad IS NOT NULL AND TRIM(ciudad) != ''${activeClause} ORDER BY ciudad ASC`
     : casaSlug
-    ? `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE casa_slug = ? AND ciudad IS NOT NULL AND TRIM(ciudad) != '' ORDER BY ciudad ASC`
-    : `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE ciudad IS NOT NULL AND TRIM(ciudad) != '' ORDER BY ciudad ASC`;
+    ? `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE casa_slug = ? AND ciudad IS NOT NULL AND TRIM(ciudad) != ''${activeClause} ORDER BY ciudad ASC`
+    : `SELECT DISTINCT TRIM(ciudad) AS ciudad FROM models WHERE ciudad IS NOT NULL AND TRIM(ciudad) != ''${activeClause} ORDER BY ciudad ASC`;
 
   const { results } = isIndependentCasaFilter(casaSlug)
     ? await env.DB.prepare(query).all()
@@ -661,9 +683,10 @@ export async function createModel(env, fields) {
       servicios,
       foto,
       fotos,
+      activa,
       created_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
   `)
     .bind(
       payload.casa_slug,
@@ -757,6 +780,35 @@ export async function deleteModel(env, id, casaSlug) {
   }
 
   return normalizeModel(row);
+}
+
+export async function updateModelActiva(env, id, activa, casaSlug) {
+  const next = activa ? 1 : 0;
+
+  if (useMockDb(env)) {
+    const stored = mockModels.find(
+      (model) => String(model.id) === String(id) && matchesCasa(model, casaSlug)
+    );
+
+    if (!stored) {
+      return null;
+    }
+
+    stored.activa = next === 1;
+    return normalizeModel(stored);
+  }
+
+  const query = casaSlug
+    ? "UPDATE models SET activa = ? WHERE id = ? AND casa_slug = ?"
+    : "UPDATE models SET activa = ? WHERE id = ?";
+
+  if (casaSlug) {
+    await env.DB.prepare(query).bind(next, id, casaSlug).run();
+  } else {
+    await env.DB.prepare(query).bind(next, id).run();
+  }
+
+  return getModel(env, id, casaSlug);
 }
 
 export function readModelFields(form) {

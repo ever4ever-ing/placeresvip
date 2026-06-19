@@ -28,6 +28,8 @@ import {
   createModel,
   appendModelPhotos,
   deleteModel,
+  updateModelActiva,
+  isModelActiva,
   readModelFields,
   getStoredPhotos,
   listCasas,
@@ -245,6 +247,10 @@ async function serveSuperAdmin() {
 }
 
 async function serveIndependentModelProfile(request, env, model) {
+  if (!isModelActiva(model)) {
+    return notFound();
+  }
+
   const origin = resolveSiteOrigin(request, env);
   const { seoHead } = seoForModel(
     request,
@@ -262,6 +268,10 @@ async function serveModelProfile(request, env, casa, modelId) {
   const model = await getModel(env, modelId, casa.slug);
 
   if (!model) {
+    return notFound();
+  }
+
+  if (!isModelActiva(model) && !(await canManageCasa(request, env, casa.slug))) {
     return notFound();
   }
 
@@ -307,7 +317,40 @@ async function handleModelApi(request, env, casaSlug, id, action) {
       return notFound();
     }
 
+    if (!isModelActiva(model) && !(await canManageCasa(request, env, casaSlug))) {
+      return notFound();
+    }
+
     return Response.json(model, JSON_NO_STORE);
+  }
+
+  if (!action && request.method === "PATCH") {
+    if (!(await canManageCasa(request, env, casaSlug))) {
+      return unauthorized();
+    }
+
+    let body;
+
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ ok: false, error: "JSON inválido." }, { status: 400 });
+    }
+
+    if (body?.activa === undefined) {
+      return Response.json(
+        { ok: false, error: "Indica si el perfil está activo (activa: true/false)." },
+        { status: 400 }
+      );
+    }
+
+    const model = await updateModelActiva(env, id, Boolean(body.activa), casaSlug);
+
+    if (!model) {
+      return notFound();
+    }
+
+    return Response.json({ ok: true, model });
   }
 
   if (!action && request.method === "DELETE") {
@@ -399,7 +442,7 @@ async function handleCasaScopedApi(request, env, casaSlug, segments) {
       return notFound();
     }
 
-    const ciudades = await listModelCiudades(env, casa.slug);
+    const ciudades = await listModelCiudades(env, casa.slug, { activeOnly: false });
     return Response.json(ciudades, JSON_NO_STORE);
   }
 
@@ -412,7 +455,7 @@ async function handleCasaScopedApi(request, env, casaSlug, segments) {
 
     const url = new URL(request.url);
     const ciudad = url.searchParams.get("ciudad");
-    const results = await listModels(env, casa.slug, ciudad);
+    const results = await listModels(env, casa.slug, ciudad, { activeOnly: false });
     return Response.json(results, JSON_NO_STORE);
   }
 
@@ -500,7 +543,7 @@ async function handleSuperAdminApi(request, env, segments) {
   if (resource === "models" && segments[3] === "ciudades" && request.method === "GET") {
     const url = new URL(request.url);
     const casaFilter = url.searchParams.get("casa");
-    const ciudades = await listModelCiudades(env, casaFilter || null);
+    const ciudades = await listModelCiudades(env, casaFilter || null, { activeOnly: false });
     return Response.json(ciudades, JSON_NO_STORE);
   }
 
@@ -510,7 +553,8 @@ async function handleSuperAdminApi(request, env, segments) {
     const ciudadFilter = url.searchParams.get("ciudad");
     const results = await listAllModels(env, {
       casa: casaFilter || null,
-      ciudad: ciudadFilter || null
+      ciudad: ciudadFilter || null,
+      activeOnly: false
     });
     return Response.json(results, JSON_NO_STORE);
   }
@@ -580,6 +624,31 @@ async function handleSuperAdminApi(request, env, segments) {
       const row = await deleteModel(env, id);
       await deleteStoredPhotos(env, row);
       return Response.json({ ok: true });
+    }
+
+    if (id && !action && request.method === "PATCH") {
+      let body;
+
+      try {
+        body = await request.json();
+      } catch {
+        return Response.json({ ok: false, error: "JSON inválido." }, { status: 400 });
+      }
+
+      if (body?.activa === undefined) {
+        return Response.json(
+          { ok: false, error: "Indica si el perfil está activo (activa: true/false)." },
+          { status: 400 }
+        );
+      }
+
+      const model = await updateModelActiva(env, id, Boolean(body.activa));
+
+      if (!model) {
+        return notFound();
+      }
+
+      return Response.json({ ok: true, model });
     }
   }
 
@@ -719,6 +788,10 @@ export async function handleRequest(request, env) {
       return notFound();
     }
 
+    if (!isModelActiva(model)) {
+      return notFound();
+    }
+
     return Response.json(model, JSON_NO_STORE);
   }
 
@@ -835,6 +908,10 @@ export async function handleRequest(request, env) {
       }
 
       return serveModelProfile(request, env, casa, legacyProfile[1]);
+    }
+
+    if (!isModelActiva(model)) {
+      return notFound();
     }
 
     return serveIndependentModelProfile(request, env, model);

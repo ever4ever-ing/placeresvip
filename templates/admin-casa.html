@@ -455,7 +455,7 @@ function renderAdminCard(model){
     : '<div class="card-placeholder">Sin foto</div>';
 
   return (
-    '<article class="card">' +
+    '<article class="card' + (model.activa ? '' : ' card-inactive') + '">' +
       '<div class="card-top">' +
         '<div class="card-media">' +
           photoMarkup +
@@ -466,6 +466,7 @@ function renderAdminCard(model){
               '<h3>' + escapeHtml(valueOrDash(model.nombre)) + '</h3>' +
               '<div class="mini">' +
                 '<span class="id-badge">#' + escapeHtml(model.id) + '</span>' +
+                '<span class="' + (model.activa ? 'status-on' : 'status-off') + '">' + (model.activa ? 'Activa' : 'Inactiva') + '</span>' +
                 '<span class="date-chip">' + escapeHtml(formatDate(model.created_at)) + '</span>' +
                 (fotos.length > 1 ? '<span class="tag">' + fotos.length + ' fotos</span>' : '') +
               '</div>' +
@@ -501,6 +502,11 @@ function renderAdminCard(model){
             '<label for="fotos-' + model.id + '">Añadir más fotos al carrusel</label>' +
             '<input type="file" id="fotos-' + model.id + '" accept="image/*" multiple onchange="addPhotos(' + model.id + ', this)">' +
           '</div>' +
+
+          '<label class="model-active-toggle subtle">' +
+            '<input type="checkbox"' + (model.activa ? ' checked' : '') + ' onchange="setModelActiva(' + model.id + ', this.checked)">' +
+            ' Perfil activo en el catálogo' +
+          '</label>' +
 
           '<div class="actions">' +
             '<a class="btn-secondary" href="' + casaBase() + '/perfil/' + encodeURIComponent(model.id) + '" target="_blank" rel="noopener">Ver perfil</a>' +
@@ -648,6 +654,24 @@ async function deleteModel(id){
   }else{
     alert('No se pudo eliminar el perfil');
   }
+}
+
+async function setModelActiva(id, activa){
+  const res = await authFetch(apiBase() + '/model/' + encodeURIComponent(id), {
+    method:'PATCH',
+    headers:{
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({ activa })
+  });
+
+  if(res.ok){
+    await loadModels();
+    return;
+  }
+
+  alert('No se pudo actualizar el estado del perfil');
+  await loadModels();
 }
 
 document.getElementById('casaBrandPhotoInput')?.addEventListener('change', async event => {

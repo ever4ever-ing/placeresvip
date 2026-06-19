@@ -505,6 +505,31 @@ body{
   padding: 10px;
 }
 
+.status-on {
+  color: #9fd4a8;
+}
+
+.status-off {
+  color: #d4a0a8;
+}
+
+.card-inactive {
+  opacity: 0.78;
+}
+
+.model-active-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.model-active-toggle input {
+  accent-color: var(--gold);
+}
+
 @media (max-width: 900px){
   .hero,
   .admin-grid,

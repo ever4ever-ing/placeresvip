@@ -65,6 +65,12 @@ function applyCasaBranding() {
       avatarImg.removeAttribute("src");
     }
   }
+
+  const adminEntry = document.getElementById("casaAdminEntry");
+  if (adminEntry && casa.slug && adminEntry.hidden) {
+    adminEntry.href = "/" + encodeURIComponent(casa.slug) + "/admin-casa";
+    adminEntry.hidden = false;
+  }
 }
 
 const renderCard = createCardRenderer({

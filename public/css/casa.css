@@ -118,6 +118,36 @@
   font-weight: 500;
 }
 
+.casa-footer {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0 8px;
+}
+
+.casa-admin-entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+  opacity: 0.18;
+  text-decoration: none;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.casa-admin-entry svg {
+  width: 14px;
+  height: 14px;
+}
+
+.casa-admin-entry:hover,
+.casa-admin-entry:focus-visible {
+  opacity: 0.55;
+  color: var(--gold-light);
+  outline: none;
+}
+
 @media (max-width: 900px) {
   .casa-hero {
     grid-template-columns: 1fr;

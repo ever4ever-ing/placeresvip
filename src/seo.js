@@ -183,6 +183,13 @@ export function injectCasaVisibleDefaults(html, casa) {
       );
   }
 
+  if (casa.slug) {
+    output = output.replace(
+      'id="casaAdminEntry" href="#" hidden',
+      `id="casaAdminEntry" href="/${encodeURIComponent(casa.slug)}/admin-casa"`
+    );
+  }
+
   return output;
 }
 

@@ -446,6 +446,31 @@ function getFotos(model){
   return model.foto ? [model.foto] : [];
 }
 
+function renderPhotoEditor(model){
+  const fotos = getFotos(model);
+
+  if(!fotos.length){
+    return '<p class="subtle photo-editor-empty">Sin fotos en el carrusel.</p>';
+  }
+
+  return (
+    '<div class="photo-editor">' +
+      '<p class="subtle photo-editor-label">Fotos del carrusel</p>' +
+      '<div class="photo-thumbs">' +
+        fotos.map((foto, index) => (
+          '<div class="photo-thumb-item">' +
+            '<div class="photo-thumb">' +
+              '<img src="' + escapeHtml(photoSrc(foto)) + '" alt="">' +
+            '</div>' +
+            (index === 0 ? '<span class="photo-cover-badge">Portada</span>' : '') +
+            '<button type="button" class="photo-remove" onclick="removePhoto(' + model.id + ', ' + index + ')" aria-label="Eliminar foto">×</button>' +
+          '</div>'
+        )).join('') +
+      '</div>' +
+    '</div>'
+  );
+}
+
 function renderAdminCard(model){
   const services = getServices(model);
   const fotos = getFotos(model);
@@ -491,15 +516,11 @@ function renderAdminCard(model){
           '</div>' +
 
           (fotos.length
-            ? '<div class="photo-thumbs" style="margin-top:14px;">' +
-                fotos.map(foto => (
-                  '<div class="photo-thumb"><img src="' + escapeHtml(photoSrc(foto)) + '" alt=""></div>'
-                )).join('') +
-              '</div>'
-            : '') +
+            ? renderPhotoEditor(model)
+            : '<p class="subtle photo-editor-empty">Sin fotos en el carrusel.</p>') +
 
           '<div class="upload-inline">' +
-            '<label for="fotos-' + model.id + '">Añadir más fotos al carrusel</label>' +
+            '<label for="fotos-' + model.id + '">Agregar fotos</label>' +
             '<input type="file" id="fotos-' + model.id + '" accept="image/*" multiple onchange="addPhotos(' + model.id + ', this)">' +
           '</div>' +
 
@@ -638,6 +659,32 @@ async function addPhotos(id, input){
   }catch(_error){}
 
   alert(message);
+}
+
+async function removePhoto(id, index){
+  if(!confirm('¿Eliminar esta foto del perfil?')){
+    return;
+  }
+
+  const res = await authFetch(apiBase() + '/model/' + encodeURIComponent(id) + '/fotos', {
+    method:'DELETE',
+    headers:{
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({ index })
+  });
+
+  if(res.ok){
+    await loadModels();
+    return;
+  }
+
+  if(res.status === 401){
+    alert('Sesión inválida');
+    return;
+  }
+
+  alert('No se pudo eliminar la foto');
 }
 
 async function deleteModel(id){

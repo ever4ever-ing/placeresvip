@@ -27,6 +27,7 @@ import {
   getModel,
   createModel,
   appendModelPhotos,
+  removeModelPhoto,
   deleteModel,
   updateModelActiva,
   isModelActiva,
@@ -308,6 +309,39 @@ async function handleModelApi(request, env, casaSlug, id, action) {
     }
 
     return Response.json({ ok: true, fotos: model.fotos });
+  }
+
+  if (action === "fotos" && request.method === "DELETE") {
+    if (!(await canManageCasa(request, env, casaSlug))) {
+      return unauthorized();
+    }
+
+    let body;
+
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ ok: false, error: "JSON inválido." }, { status: 400 });
+    }
+
+    const target = body?.index !== undefined ? body.index : body?.foto;
+
+    if (target === undefined || target === null || target === "") {
+      return Response.json(
+        { ok: false, error: "Indica la foto a eliminar (index o foto)." },
+        { status: 400 }
+      );
+    }
+
+    const result = await removeModelPhoto(env, id, target, casaSlug);
+
+    if (!result) {
+      return notFound();
+    }
+
+    await deleteStoredCasaPhoto(env, result.removedFoto);
+
+    return Response.json({ ok: true, fotos: result.model.fotos });
   }
 
   if (!action && request.method === "GET") {
@@ -618,6 +652,35 @@ async function handleSuperAdminApi(request, env, segments) {
       }
 
       return Response.json({ ok: true, fotos: model.fotos });
+    }
+
+    if (id && action === "fotos" && request.method === "DELETE") {
+      let body;
+
+      try {
+        body = await request.json();
+      } catch {
+        return Response.json({ ok: false, error: "JSON inválido." }, { status: 400 });
+      }
+
+      const target = body?.index !== undefined ? body.index : body?.foto;
+
+      if (target === undefined || target === null || target === "") {
+        return Response.json(
+          { ok: false, error: "Indica la foto a eliminar (index o foto)." },
+          { status: 400 }
+        );
+      }
+
+      const result = await removeModelPhoto(env, id, target);
+
+      if (!result) {
+        return notFound();
+      }
+
+      await deleteStoredCasaPhoto(env, result.removedFoto);
+
+      return Response.json({ ok: true, fotos: result.model.fotos });
     }
 
     if (id && !action && request.method === "DELETE") {

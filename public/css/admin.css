@@ -109,7 +109,13 @@ button{background:linear-gradient(135deg,#d4b87a 0%,#a8864a 50%,#8b6d3a 100%);co
 .upload-zone strong{display:block;color:var(--gold-light);font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
 .upload-zone span{color:var(--muted);font-size:13px}
 .photo-preview-grid,.photo-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.photo-editor{margin-top:14px}
+.photo-editor-label,.photo-editor-empty{margin:0 0 8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
 .photo-preview,.photo-thumb{width:72px;height:72px;border-radius:2px;overflow:hidden;border:1px solid var(--line)}
+.photo-thumb-item{position:relative;width:72px}
+.photo-cover-badge{position:absolute;left:4px;right:4px;bottom:4px;padding:2px 4px;border-radius:2px;background:rgba(8,5,7,.78);color:var(--gold-light);font-size:8px;letter-spacing:.08em;text-transform:uppercase;text-align:center;pointer-events:none}
+.photo-remove{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(92,36,56,.92);color:#fff;font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.photo-remove:hover{background:rgba(120,44,62,.98)}
 .photo-preview img,.photo-thumb img{width:100%;height:100%;object-fit:cover}
 .upload-inline{margin-top:14px;padding-top:14px;border-top:1px solid rgba(201,169,98,.12)}
 .casa-admin-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}

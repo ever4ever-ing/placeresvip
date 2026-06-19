@@ -743,6 +743,71 @@ export async function appendModelPhotos(env, id, newKeys, casaSlug) {
   return getModel(env, id, casaSlug);
 }
 
+export async function removeModelPhoto(env, id, target, casaSlug) {
+  const model = await getModel(env, id, casaSlug);
+
+  if (!model) {
+    return null;
+  }
+
+  const fotos = [...model.fotos];
+  let removedFoto = null;
+
+  if (typeof target === "number" || (typeof target === "string" && /^\d+$/.test(target))) {
+    const index = Number(target);
+
+    if (!Number.isInteger(index) || index < 0 || index >= fotos.length) {
+      return null;
+    }
+
+    removedFoto = fotos[index];
+    fotos.splice(index, 1);
+  } else if (typeof target === "string" && target) {
+    const index = fotos.indexOf(target);
+
+    if (index === -1) {
+      return null;
+    }
+
+    removedFoto = fotos[index];
+    fotos.splice(index, 1);
+  } else {
+    return null;
+  }
+
+  const foto = fotos[0] ?? null;
+
+  if (useMockDb(env)) {
+    const stored = mockModels.find((item) => String(item.id) === String(id));
+
+    if (!stored) {
+      return null;
+    }
+
+    stored.fotos = fotos;
+    stored.foto = foto;
+    return { model: normalizeModel(stored), removedFoto };
+  }
+
+  const query = casaSlug
+    ? "UPDATE models SET foto = ?, fotos = ? WHERE id = ? AND casa_slug = ?"
+    : "UPDATE models SET foto = ?, fotos = ? WHERE id = ?";
+
+  if (casaSlug) {
+    await env.DB.prepare(query).bind(foto, fotos.length ? JSON.stringify(fotos) : null, id, casaSlug).run();
+  } else {
+    await env.DB.prepare(query).bind(foto, fotos.length ? JSON.stringify(fotos) : null, id).run();
+  }
+
+  const updated = await getModel(env, id, casaSlug);
+
+  if (!updated) {
+    return null;
+  }
+
+  return { model: updated, removedFoto };
+}
+
 export async function deleteModel(env, id, casaSlug) {
   if (useMockDb(env)) {
     const index = mockModels.findIndex(

@@ -103,8 +103,10 @@ function getSuperAdminSecret(env) {
 }
 
 function requireSuper(request, env) {
-  const token = request.headers.get("Authorization");
-  return Boolean(token) && token === getSuperAdminSecret(env);
+  const token = request.headers.get("Authorization")?.trim();
+  const secret = getSuperAdminSecret(env);
+
+  return Boolean(token && secret && token === secret);
 }
 
 async function canManageCasa(request, env, casaSlug) {
@@ -142,6 +144,17 @@ function injectCatalogContext(html) {
   return html.replace("</head>", `<script>window.__CASA__=${payload};</script></head>`);
 }
 
+function injectInitialCatalogSelection(html, selection) {
+  if (!selection) {
+    return html;
+  }
+
+  return html.replace(
+    "</head>",
+    `<script>window.__INITIAL_CATALOG__=${JSON.stringify(selection)};</script></head>`
+  );
+}
+
 function withSeo(html, seoHead) {
   return injectSeo(html, seoHead);
 }
@@ -154,6 +167,24 @@ async function resolveActiveCasa(env, slug) {
   }
 
   return casa;
+}
+
+async function resolveCasaForApiAccess(request, env, slug) {
+  const casa = await getCasa(env, slug);
+
+  if (!casa) {
+    return null;
+  }
+
+  if (casa.activa) {
+    return casa;
+  }
+
+  if (await canManageCasa(request, env, slug)) {
+    return casa;
+  }
+
+  return null;
 }
 
 async function serveCasaProfile(request, env, casa) {
@@ -264,7 +295,7 @@ async function handleCreateModel(request, env, casaSlug) {
     return unauthorized();
   }
 
-  const casa = await resolveActiveCasa(env, casaSlug);
+  const casa = await resolveCasaForApiAccess(request, env, casaSlug);
 
   if (!casa) {
     return notFound();
@@ -320,7 +351,7 @@ async function handleCasaScopedApi(request, env, casaSlug, segments) {
   }
 
   if (resource === "models" && segments[3] === "ciudades" && request.method === "GET") {
-    const casa = await resolveActiveCasa(env, casaSlug);
+    const casa = await resolveCasaForApiAccess(request, env, casaSlug);
 
     if (!casa) {
       return notFound();
@@ -331,7 +362,7 @@ async function handleCasaScopedApi(request, env, casaSlug, segments) {
   }
 
   if (resource === "models" && request.method === "GET" && segments.length === 3) {
-    const casa = await resolveActiveCasa(env, casaSlug);
+    const casa = await resolveCasaForApiAccess(request, env, casaSlug);
 
     if (!casa) {
       return notFound();
@@ -682,17 +713,41 @@ export async function handleRequest(request, env) {
       listCasaCiudades
     });
     return new Response(xml, {
-      headers: { "Content-Type": "application/xml; charset=UTF-8" }
+      headers: {
+        "Content-Type": "application/xml; charset=UTF-8",
+        "Cache-Control": "public, max-age=3600"
+      }
     });
   }
 
   if (pathname === "/") {
     const origin = resolveSiteOrigin(request, env);
+    const casaQuery = url.searchParams.get("casa");
+
+    if (casaQuery === "independiente") {
+      return Response.redirect(`${origin}/independientes`, 301);
+    }
+
+    if (casaQuery && isValidCasaSlug(casaQuery)) {
+      const casa = await getCasa(env, casaQuery);
+
+      if (casa?.activa) {
+        return Response.redirect(`${origin}/${encodeURIComponent(casaQuery)}`, 301);
+      }
+    }
+
     const casas = await listCasas(env);
     const ciudades = await listCasaCiudades(env);
     const { seoHead } = seoForCatalog(request, env);
     let html = injectCatalogContext(indexHtml);
     html = injectIndexCrawlables(html, origin, casas, ciudades);
+    return htmlResponse(withSeo(html, seoHead));
+  }
+
+  if (pathname === "/independientes") {
+    const { seoHead } = seoForCatalog(request, env);
+    let html = injectCatalogContext(indexHtml);
+    html = injectInitialCatalogSelection(html, "independiente");
     return htmlResponse(withSeo(html, seoHead));
   }
 

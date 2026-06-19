@@ -117,18 +117,16 @@ const renderCard = createCardRenderer({
 function syncUrl() {
   const slug = getSelectedCasaSlug();
   const ciudad = getSelectedCiudad();
-  const url = new URL(window.location.href);
 
-  if (slug) {
-    url.searchParams.set("casa", slug);
-  } else {
-    url.searchParams.delete("casa");
+  if (slug === INDEPENDENT_CASA) {
+    window.history.replaceState({}, "", "/independientes");
+    return;
   }
 
-  if (!slug && ciudad) {
+  const url = new URL(window.location.origin + "/");
+
+  if (ciudad) {
     url.searchParams.set("ciudad", ciudad);
-  } else {
-    url.searchParams.delete("ciudad");
   }
 
   window.history.replaceState({}, "", url);
@@ -202,6 +200,11 @@ function setPickerFiltersVisible(visible) {
 }
 
 function showPicker() {
+  if (window.location.pathname === "/independientes") {
+    window.location.href = "/";
+    return;
+  }
+
   casaPickerEl.hidden = false;
   catalogSectionEl.hidden = true;
   setPickerFiltersVisible(true);
@@ -339,10 +342,11 @@ async function updateCiudadOptions() {
 
 function renderCasaCard(casa) {
   const city = casa.ciudad ? escapeHtml(casa.ciudad) : "Chile";
+  const href = casaProfileUrl(casa.slug);
 
   return (
-    '<button type="button" class="casa-card" data-casa="' +
-    escapeHtml(casa.slug) +
+    '<a class="casa-card" href="' +
+    escapeHtml(href) +
     '">' +
     '<span class="casa-card-eyebrow">Casa</span>' +
     "<h3>" +
@@ -352,20 +356,18 @@ function renderCasaCard(casa) {
     city +
     "</p>" +
     '<span class="casa-card-cta">Ver catálogo →</span>' +
-    "</button>"
+    "</a>"
   );
 }
 
 function renderIndependentCard() {
   return (
-    '<button type="button" class="casa-card casa-card-independent" data-casa="' +
-    INDEPENDENT_CASA +
-    '">' +
+    '<a class="casa-card casa-card-independent" href="/independientes">' +
     '<span class="casa-card-eyebrow">Catálogo</span>' +
     "<h3>Independientes</h3>" +
     '<p class="casa-card-meta">Ver perfiles disponibles</p>' +
     '<span class="casa-card-cta">Ver perfiles →</span>' +
-    "</button>"
+    "</a>"
   );
 }
 
@@ -436,6 +438,16 @@ async function loadModels() {
 }
 
 async function selectCasa(slug) {
+  if (slug !== INDEPENDENT_CASA) {
+    window.location.href = casaProfileUrl(slug);
+    return;
+  }
+
+  if (window.location.pathname !== "/independientes") {
+    window.location.href = "/independientes";
+    return;
+  }
+
   await showCatalog(slug);
   await loadModels();
 }
@@ -456,35 +468,28 @@ if (backToMenuBtnInline) {
   });
 }
 
-document.getElementById("casaCards").addEventListener("click", (event) => {
-  const card = event.target.closest("[data-casa]");
-
-  if (!card) {
-    return;
-  }
-
-  selectCasa(card.dataset.casa);
-});
-
 function readInitialCiudad() {
   return new URLSearchParams(window.location.search).get("ciudad") || "";
 }
 
 function readInitialCasa() {
+  if (window.location.pathname === "/independientes") {
+    return INDEPENDENT_CASA;
+  }
+
+  if (window.__INITIAL_CATALOG__ === INDEPENDENT_CASA) {
+    return INDEPENDENT_CASA;
+  }
+
   const fromQuery = new URLSearchParams(window.location.search).get("casa");
 
   if (fromQuery === INDEPENDENT_CASA) {
     return INDEPENDENT_CASA;
   }
 
-  if (fromQuery && casas.some((casa) => casa.slug === fromQuery)) {
-    return fromQuery;
-  }
-
-  const injected = getCasa().slug;
-
-  if (injected && casas.some((casa) => casa.slug === injected)) {
-    return injected;
+  if (fromQuery && fromQuery !== INDEPENDENT_CASA && casas.some((casa) => casa.slug === fromQuery)) {
+    window.location.replace(casaProfileUrl(fromQuery));
+    return "";
   }
 
   return "";

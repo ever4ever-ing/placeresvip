@@ -38,7 +38,7 @@ export function injectIndexCrawlables(html, origin, casas, ciudades = []) {
     .join("");
 
   const independent =
-    `<a class="casa-card casa-card-independent" href="${escapeHtml(origin)}/?casa=${INDEPENDENT_CASA}">` +
+    `<a class="casa-card casa-card-independent" href="${escapeHtml(origin)}/independientes">` +
     '<span class="casa-card-eyebrow">Catálogo</span>' +
     "<h3>Independientes</h3>" +
     '<p class="casa-card-meta">Ver perfiles disponibles</p>' +

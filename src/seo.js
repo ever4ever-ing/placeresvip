@@ -366,7 +366,10 @@ export async function renderSitemapXml(request, env, { listCasas, listAllModels,
   const activeSlugs = new Set(casas.map((casa) => casa.slug));
   const models = await listAllModels(env, {});
   const ciudades = listCasaCiudades ? await listCasaCiudades(env) : [];
-  const urls = [{ loc: `${origin}/`, changefreq: "daily", priority: "1.0" }];
+  const urls = [
+    { loc: `${origin}/`, changefreq: "daily", priority: "1.0" },
+    { loc: `${origin}/independientes`, changefreq: "daily", priority: "0.88" }
+  ];
 
   for (const ciudad of ciudades) {
     urls.push({

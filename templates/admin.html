@@ -166,17 +166,52 @@ function showPanel(){
   loadAll();
 }
 
+function logout(message){
+  token = '';
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById('login').style.display = 'block';
+  document.getElementById('panel').style.display = 'none';
+  if(message){
+    alert(message);
+  }
+}
+
+async function authFetch(url, options = {}){
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: token
+  };
+  const res = await fetch(url, { ...options, headers });
+
+  if(res.status === 401){
+    logout('Sesión inválida o expirada. Ingresa de nuevo con la clave maestra.');
+    throw new Error('unauthorized');
+  }
+
+  return res;
+}
+
 async function loadAll(){
-  await loadCasas();
-  renderCasaOptions();
-  await loadModelCiudades();
-  await loadModels();
+  try{
+    await loadCasas();
+    renderCasaOptions();
+    await loadModelCiudades();
+    await loadModels();
+  }catch(error){
+    if(error?.message !== 'unauthorized'){
+      console.error(error);
+    }
+  }
 }
 
 async function loadCasas(){
-  const res = await fetch(api('/casas'), { headers:{ Authorization: token } });
+  const res = await authFetch(api('/casas'));
   casas = res.ok ? await res.json() : [];
   if(!Array.isArray(casas)) casas = [];
+  if(!res.ok){
+    document.getElementById('casaList').innerHTML = '<div class="empty">No se pudieron cargar las casas.</div>';
+    return;
+  }
   renderCasaList();
   renderCasaOptions();
 }
@@ -196,7 +231,7 @@ function buildModelsUrl(){
 async function loadModelCiudades(){
   const casa = document.getElementById('modelCasaFilter')?.value || '';
   const url = api('/models/ciudades') + (casa ? '?casa=' + encodeURIComponent(casa) : '');
-  const res = await fetch(url, { headers:{ Authorization: token } });
+  const res = await authFetch(url);
   const ciudades = res.ok ? await res.json() : [];
   const select = document.getElementById('modelCiudadFilter');
   const current = select?.value || '';
@@ -215,9 +250,13 @@ async function loadModelCiudades(){
 }
 
 async function loadModels(){
-  const res = await fetch(buildModelsUrl(), { headers:{ Authorization: token } });
+  const res = await authFetch(buildModelsUrl());
   models = res.ok ? await res.json() : [];
   if(!Array.isArray(models)) models = [];
+  if(!res.ok){
+    document.getElementById('modelList').innerHTML = '<div class="empty">No se pudieron cargar los perfiles.</div>';
+    return;
+  }
   renderModelList();
 }
 
@@ -297,9 +336,9 @@ async function saveCasa(slug, options = {}){
     body.admin_secret = nextSecret;
   }
 
-  const res = await fetch(api('/casas/' + encodeURIComponent(slug)), {
+  const res = await authFetch(api('/casas/' + encodeURIComponent(slug)), {
     method:'PUT',
-    headers:{ Authorization: token, 'Content-Type':'application/json' },
+    headers:{ 'Content-Type':'application/json' },
     body: JSON.stringify(body)
   });
 
@@ -337,9 +376,9 @@ document.getElementById('casaForm').addEventListener('submit', async event => {
     ciudad: form.ciudad.value.trim() || null,
     telefonos: form.telefonos.value.trim()
   };
-  const res = await fetch(api('/casas'), {
+  const res = await authFetch(api('/casas'), {
     method:'POST',
-    headers:{ Authorization: token, 'Content-Type':'application/json' },
+    headers:{ 'Content-Type':'application/json' },
     body: JSON.stringify(body)
   });
   if(res.ok){
@@ -462,9 +501,8 @@ createUploadZone.addEventListener('drop', event => {
 document.getElementById('modelForm').addEventListener('submit', async event => {
   event.preventDefault();
   const formData = new FormData(event.target);
-  const res = await fetch(api('/model'), {
+  const res = await authFetch(api('/model'), {
     method:'POST',
-    headers:{ Authorization: token },
     body: formData
   });
   if(res.ok){
@@ -487,9 +525,8 @@ async function addPhotos(id, input){
   if(!files.length) return;
   const formData = new FormData();
   files.forEach(file => formData.append('foto', file));
-  const res = await fetch(api('/model/' + encodeURIComponent(id) + '/fotos'), {
+  const res = await authFetch(api('/model/' + encodeURIComponent(id) + '/fotos'), {
     method:'POST',
-    headers:{ Authorization: token },
     body: formData
   });
   input.value = '';
@@ -499,9 +536,8 @@ async function addPhotos(id, input){
 
 async function deleteModel(id){
   if(!confirm('¿Eliminar perfil?')) return;
-  const res = await fetch(api('/model/' + id), {
-    method:'DELETE',
-    headers:{ Authorization: token }
+  const res = await authFetch(api('/model/' + id), {
+    method:'DELETE'
   });
   if(res.ok){ loadModels(); return; }
   alert('No se pudo eliminar el perfil');

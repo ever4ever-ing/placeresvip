@@ -1,8 +1,8 @@
-import { escapeHtml, formatModelCount, whatsAppUrl } from "./lib.js";
+import { escapeHtml, formatModelCount, photoSrc, whatsAppUrl } from "./lib.js";
 import { bindCatalogCards, createCardRenderer } from "./catalog.js";
 
 function getCasa() {
-  return window.__CASA__ || { slug: "", nombre: "", ciudad: null, telefonos: [] };
+  return window.__CASA__ || { slug: "", nombre: "", ciudad: null, telefonos: [], foto: null };
 }
 
 function phoneDigits(phone) {
@@ -50,6 +50,21 @@ function applyCasaBranding() {
     ? "Ciudad: " + casa.ciudad
     : "";
   document.getElementById("casaPhones").innerHTML = renderPhoneLinks(casa.telefonos);
+
+  const avatar = document.getElementById("casaAvatar");
+  const avatarImg = document.getElementById("casaAvatarImg");
+  const src = photoSrc(casa.foto);
+
+  if (avatar && avatarImg) {
+    if (src) {
+      avatar.hidden = false;
+      avatarImg.src = src;
+      avatarImg.alt = label;
+    } else {
+      avatar.hidden = true;
+      avatarImg.removeAttribute("src");
+    }
+  }
 }
 
 const renderCard = createCardRenderer({

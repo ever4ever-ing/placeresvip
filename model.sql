@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS casas (
   telefonos     TEXT,                    -- JSON: ["+569...", ...]
   admin_secret  TEXT,
   activa        INTEGER NOT NULL DEFAULT 1,
+  foto          TEXT,                    -- clave R2 o URL (foto de perfil de la casa)
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

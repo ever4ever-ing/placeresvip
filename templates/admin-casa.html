@@ -22,6 +22,24 @@
     </div>
   </section>
 
+  <section class="panel casa-brand-panel" id="casaBrandPanel" hidden>
+    <div class="casa-brand-head">
+      <div class="casa-brand-photo-wrap">
+        <img id="casaBrandPhoto" alt="">
+        <div class="casa-brand-photo-empty" id="casaBrandPhotoEmpty">Sin foto</div>
+      </div>
+      <div>
+        <h2>Foto de la casa</h2>
+        <p class="subtle">Se muestra en el menú principal y en la página pública de la casa.</p>
+        <label class="upload-zone" style="margin-top:12px">
+          <input type="file" id="casaBrandPhotoInput" accept="image/*">
+          <strong>Subir o cambiar foto</strong>
+          <span>JPG o PNG recomendado.</span>
+        </label>
+      </div>
+    </div>
+  </section>
+
   <div id="login" class="login panel">
     <h2>Acceso reservado</h2>
     <p class="subtle">Ingresa el slug de tu casa y la clave de acceso.</p>
@@ -122,6 +140,50 @@ function applyCasaBranding(){
   if(slugInput && casa.slug && !slugInput.value){
     slugInput.value = casa.slug;
   }
+
+  renderCasaBrandPhoto(casa);
+}
+
+function photoSrc(foto){
+  if(!foto){
+    return '';
+  }
+
+  if(foto.startsWith('http://') || foto.startsWith('https://')){
+    return foto;
+  }
+
+  return '/img/' + encodeURIComponent(foto);
+}
+
+function renderCasaBrandPhoto(casa){
+  const panel = document.getElementById('casaBrandPanel');
+  const img = document.getElementById('casaBrandPhoto');
+  const empty = document.getElementById('casaBrandPhotoEmpty');
+  const src = photoSrc(casa.foto);
+
+  if(!panel || !img || !empty){
+    return;
+  }
+
+  if(!casa.slug){
+    panel.hidden = true;
+    return;
+  }
+
+  panel.hidden = false;
+
+  if(src){
+    img.hidden = false;
+    img.src = src;
+    img.alt = casa.nombre || casa.slug;
+    empty.hidden = true;
+    return;
+  }
+
+  img.hidden = true;
+  img.removeAttribute('src');
+  empty.hidden = false;
 }
 
 function tokenKey(){
@@ -242,6 +304,7 @@ async function login(){
 async function showPanel(){
   document.getElementById('login').style.display = 'none';
   document.getElementById('panel').style.display = 'grid';
+  applyCasaBranding();
 
   if(!apiBase()){
     alert('Abre el admin desde la URL de tu casa, por ejemplo /casa-rocio/admin-casa');
@@ -374,18 +437,6 @@ document.getElementById('form').addEventListener('submit', async event => {
     alert(message);
   }
 });
-
-function photoSrc(foto){
-  if(!foto){
-    return '';
-  }
-
-  if(foto.startsWith('http://') || foto.startsWith('https://')){
-    return foto;
-  }
-
-  return '/img/' + encodeURIComponent(foto);
-}
 
 function getFotos(model){
   if(Array.isArray(model.fotos) && model.fotos.length > 0){
@@ -598,6 +649,41 @@ async function deleteModel(id){
     alert('No se pudo eliminar el perfil');
   }
 }
+
+document.getElementById('casaBrandPhotoInput')?.addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  const slug = getCasa().slug;
+
+  if(!file || !slug){
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('foto', file);
+
+  const res = await authFetch(apiBase() + '/casa/foto', {
+    method:'POST',
+    body: formData
+  });
+
+  event.target.value = '';
+
+  if(!res.ok){
+    alert('No se pudo subir la foto de la casa');
+    return;
+  }
+
+  const data = await res.json();
+  if(data?.casa){
+    window.__CASA__ = {
+      ...getCasa(),
+      foto: data.casa.foto ?? null
+    };
+    renderCasaBrandPhoto(data.casa);
+  }
+
+  alert('Foto de la casa actualizada');
+});
 
 </script>
 

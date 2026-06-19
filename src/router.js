@@ -34,6 +34,7 @@ import {
   getCasa,
   createCasa,
   updateCasa,
+  updateCasaFoto,
   authenticateCasaAdmin,
   verifyCasaAdminSecret,
   getDefaultCasaSlug,
@@ -71,6 +72,38 @@ async function deleteStoredPhotos(env, model) {
   for (const key of getStoredPhotos(model)) {
     await env.IMAGES.delete(key);
   }
+}
+
+async function deleteStoredCasaPhoto(env, fotoKey) {
+  if (!env.IMAGES || !fotoKey || /^https?:\/\//i.test(String(fotoKey))) {
+    return;
+  }
+
+  await env.IMAGES.delete(fotoKey);
+}
+
+async function handleCasaFotoUpload(request, env, casaSlug) {
+  const form = await request.formData();
+  const file = form.get("foto");
+
+  if (!file || !file.size) {
+    return Response.json({ ok: false, error: "Selecciona una imagen." }, { status: 400 });
+  }
+
+  if (!env.IMAGES) {
+    return Response.json({ ok: false, error: "No hay binding R2 (IMAGES)." }, { status: 500 });
+  }
+
+  const keys = await uploadImages(env, [file]);
+
+  if (!keys.length) {
+    return Response.json({ ok: false, error: "No se pudo subir la imagen." }, { status: 400 });
+  }
+
+  const { casa, oldFoto } = await updateCasaFoto(env, casaSlug, keys[0]);
+  await deleteStoredCasaPhoto(env, oldFoto);
+
+  return Response.json({ ok: true, casa });
 }
 
 const HTML_HEADERS = {
@@ -128,7 +161,8 @@ function injectCasaContext(html, casa) {
     slug: casa.slug,
     nombre: casa.nombre,
     ciudad: casa.ciudad ?? null,
-    telefonos: casa.telefonos ?? []
+    telefonos: casa.telefonos ?? [],
+    foto: casa.foto ?? null
   });
 
   return html.replace("</head>", `<script>window.__CASA__=${payload};</script></head>`);
@@ -350,6 +384,14 @@ async function handleCasaScopedApi(request, env, casaSlug, segments) {
     });
   }
 
+  if (resource === "casa" && segments[3] === "foto" && request.method === "POST") {
+    if (!(await canManageCasa(request, env, casaSlug))) {
+      return unauthorized();
+    }
+
+    return handleCasaFotoUpload(request, env, casaSlug);
+  }
+
   if (resource === "models" && segments[3] === "ciudades" && request.method === "GET") {
     const casa = await resolveCasaForApiAccess(request, env, casaSlug);
 
@@ -433,6 +475,23 @@ async function handleSuperAdminApi(request, env, segments) {
     } catch (error) {
       return Response.json(
         { ok: false, error: error instanceof Error ? error.message : "No se pudo actualizar la casa." },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (
+    segments[2] === "casas" &&
+    segments[3] &&
+    segments[4] === "foto" &&
+    request.method === "POST" &&
+    segments.length === 5
+  ) {
+    try {
+      return await handleCasaFotoUpload(request, env, segments[3]);
+    } catch (error) {
+      return Response.json(
+        { ok: false, error: error instanceof Error ? error.message : "No se pudo actualizar la foto." },
         { status: 400 }
       );
     }

@@ -81,6 +81,7 @@ export function normalizeCasa(casa, { admin = false } = {}) {
     nombre: casa.nombre,
     ciudad: casa.ciudad ?? null,
     telefonos: parseTelefonosJson(casa.telefonos),
+    foto: casa.foto ?? null,
     activa: isCasaActiva(casa),
     created_at: casa.created_at
   };
@@ -102,7 +103,7 @@ async function getCasaRow(env, slug) {
   }
 
   return env.DB.prepare(
-    "SELECT slug, nombre, ciudad, telefonos, admin_secret, activa, created_at FROM casas WHERE slug = ?"
+    "SELECT slug, nombre, ciudad, telefonos, admin_secret, activa, foto, created_at FROM casas WHERE slug = ?"
   )
     .bind(slug)
     .first();
@@ -183,8 +184,8 @@ export async function listCasas(env, { activeOnly = true, admin = false } = {}) 
   }
 
   const query = activeOnly
-    ? "SELECT slug, nombre, ciudad, telefonos, admin_secret, activa, created_at FROM casas WHERE activa = 1 ORDER BY nombre ASC"
-    : "SELECT slug, nombre, ciudad, telefonos, admin_secret, activa, created_at FROM casas ORDER BY nombre ASC";
+    ? "SELECT slug, nombre, ciudad, telefonos, admin_secret, activa, foto, created_at FROM casas WHERE activa = 1 ORDER BY nombre ASC"
+    : "SELECT slug, nombre, ciudad, telefonos, admin_secret, activa, foto, created_at FROM casas ORDER BY nombre ASC";
 
   const { results } = await env.DB.prepare(query).all();
   return results.map((casa) => normalizeCasa(casa, { admin }));
@@ -335,6 +336,35 @@ export async function updateCasa(env, slug, fields) {
   }
 
   return updated;
+}
+
+export async function updateCasaFoto(env, slug, fotoKey) {
+  const row = await getCasaRow(env, slug);
+
+  if (!row) {
+    throw new Error("Casa no encontrada.");
+  }
+
+  const oldFoto = row.foto ?? null;
+  const nextFoto = fotoKey ? String(fotoKey).trim() : null;
+
+  if (useMockDb(env)) {
+    const stored = mockCasas.find((item) => item.slug === slug);
+
+    if (!stored) {
+      throw new Error("Casa no encontrada.");
+    }
+
+    stored.foto = nextFoto;
+    return { casa: normalizeCasa(stored), oldFoto };
+  }
+
+  await env.DB.prepare("UPDATE casas SET foto = ? WHERE slug = ?").bind(nextFoto, slug).run();
+
+  return {
+    casa: await getCasa(env, slug),
+    oldFoto
+  };
 }
 
 export function normalizeModel(model) {

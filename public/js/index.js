@@ -1,4 +1,4 @@
-import { escapeHtml, formatModelCount } from "./lib.js";
+import { escapeHtml, formatModelCount, photoSrc } from "./lib.js";
 import { bindCatalogCards, createCardRenderer } from "./catalog.js";
 
 const INDEPENDENT_CASA = "independiente";
@@ -340,6 +340,24 @@ async function updateCiudadOptions() {
   renderCiudadSelect(ciudades);
 }
 
+function renderCasaCardMedia(casa) {
+  const src = photoSrc(casa.foto);
+
+  if (!src) {
+    return '<div class="casa-card-media casa-card-media-empty" aria-hidden="true"></div>';
+  }
+
+  return (
+    '<div class="casa-card-media">' +
+    '<img src="' +
+    escapeHtml(src) +
+    '" alt="' +
+    escapeHtml(casa.nombre) +
+    '" loading="lazy" decoding="async">' +
+    "</div>"
+  );
+}
+
 function renderCasaCard(casa) {
   const city = casa.ciudad ? escapeHtml(casa.ciudad) : "Chile";
   const href = casaProfileUrl(casa.slug);
@@ -348,6 +366,7 @@ function renderCasaCard(casa) {
     '<a class="casa-card" href="' +
     escapeHtml(href) +
     '">' +
+    renderCasaCardMedia(casa) +
     '<span class="casa-card-eyebrow">Casa</span>' +
     "<h3>" +
     escapeHtml(casa.nombre) +

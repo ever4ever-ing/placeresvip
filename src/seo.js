@@ -154,8 +154,13 @@ export function injectSeo(html, seoHead) {
 export function injectCasaVisibleDefaults(html, casa) {
   const city = cityLabel(casa.ciudad);
   const label = casa.nombre || casa.slug || "Casa";
+  const foto = casa.foto
+    ? String(casa.foto).startsWith("http")
+      ? casa.foto
+      : `/img/${encodeURIComponent(casa.foto)}`
+    : null;
 
-  return html
+  let output = html
     .replace(
       'id="casaNombre">Cargando...<',
       `id="casaNombre">${escapeHtml(label)}<`
@@ -168,6 +173,17 @@ export function injectCasaVisibleDefaults(html, casa) {
       'id="casaCiudad"><',
       `id="casaCiudad">${casa.ciudad ? `Ciudad: ${escapeHtml(casa.ciudad)}` : ""}<`
     );
+
+  if (foto) {
+    output = output
+      .replace('id="casaAvatar" hidden', 'id="casaAvatar"')
+      .replace(
+        'id="casaAvatarImg" alt=""',
+        `id="casaAvatarImg" src="${escapeHtml(foto)}" alt="${escapeHtml(label)}"`
+      );
+  }
+
+  return output;
 }
 
 export function seoForCatalog(request, env) {
@@ -220,12 +236,14 @@ export function seoForCasa(request, env, casa) {
   });
 
   const telefono = Array.isArray(casa.telefonos) ? casa.telefonos[0] : null;
+  const ogImage = casa.foto ? `${origin}/img/${encodeURIComponent(casa.foto)}` : null;
 
   const seoHead = renderSeoHead({
     title,
     description,
     keywords,
     canonical,
+    ogImage,
     siteOrigin: origin,
     googleSiteVerification: env?.GOOGLE_SITE_VERIFICATION || null,
     jsonLd: {
@@ -240,6 +258,7 @@ export function seoForCasa(request, env, casa) {
         addressCountry: "CL"
       },
       ...(telefono ? { telephone: telefono } : {}),
+      ...(ogImage ? { image: ogImage } : {}),
       areaServed: {
         "@type": "Country",
         name: "Chile"

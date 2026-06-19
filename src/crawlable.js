@@ -20,6 +20,32 @@ function profileUrl(origin, casaSlug, modelId) {
   return `${origin}/${encodeURIComponent(casaSlug)}/perfil/${encodeURIComponent(modelId)}`;
 }
 
+function casaPhotoSrc(foto) {
+  if (!foto) {
+    return "";
+  }
+
+  if (String(foto).startsWith("http://") || String(foto).startsWith("https://")) {
+    return String(foto);
+  }
+
+  return `/img/${encodeURIComponent(foto)}`;
+}
+
+function renderCasaCardMedia(foto, nombre) {
+  const src = casaPhotoSrc(foto);
+
+  if (!src) {
+    return '<div class="casa-card-media casa-card-media-empty" aria-hidden="true"></div>';
+  }
+
+  return (
+    `<div class="casa-card-media">` +
+    `<img src="${escapeHtml(src)}" alt="${escapeHtml(nombre)}" loading="lazy" decoding="async">` +
+    `</div>`
+  );
+}
+
 export function injectIndexCrawlables(html, origin, casas, ciudades = []) {
   const cards = casas
     .map((casa) => {
@@ -28,6 +54,7 @@ export function injectIndexCrawlables(html, origin, casas, ciudades = []) {
 
       return (
         `<a class="casa-card" href="${escapeHtml(href)}">` +
+        renderCasaCardMedia(casa.foto, casa.nombre || casa.slug) +
         '<span class="casa-card-eyebrow">Casa</span>' +
         `<h3>${escapeHtml(casa.nombre)}</h3>` +
         `<p class="casa-card-meta">${city}</p>` +

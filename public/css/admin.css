@@ -112,6 +112,9 @@ button{background:linear-gradient(135deg,#d4b87a 0%,#a8864a 50%,#8b6d3a 100%);co
 .photo-preview,.photo-thumb{width:72px;height:72px;border-radius:2px;overflow:hidden;border:1px solid var(--line)}
 .photo-preview img,.photo-thumb img{width:100%;height:100%;object-fit:cover}
 .upload-inline{margin-top:14px;padding-top:14px;border-top:1px solid rgba(201,169,98,.12)}
+.casa-admin-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.casa-admin-photo{width:88px;height:88px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,169,98,.28);flex-shrink:0}
+.casa-admin-photo-empty{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;border:1px dashed var(--line);color:var(--muted);font-size:11px;text-align:center;padding:8px}
 .upload-inline label{display:block;margin-bottom:8px;color:var(--gold);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
 .upload-inline input[type="file"]{width:100%;font-size:12px;color:var(--muted)}
 .status-on{color:#9fd4a8}.status-off{color:#d4a0a8}

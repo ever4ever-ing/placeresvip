@@ -36,6 +36,11 @@
           <input name="nombre" placeholder="Nombre visible" required>
           <input name="ciudad" placeholder="Ciudad" required>
           <input name="telefonos" placeholder="Teléfonos (separados por coma)" required>
+          <label class="upload-zone" id="createCasaPhotoZone">
+            <input type="file" id="createCasaFoto" accept="image/*">
+            <strong>Foto de perfil de la casa</strong>
+            <span>Opcional. Se muestra en el menú y en la página pública.</span>
+          </label>
           <div class="actions"><button>Crear casa</button></div>
         </form>
       </section>
@@ -282,13 +287,21 @@ function renderCasaList(){
     root.innerHTML = '<div class="empty">Todavía no hay casas registradas.</div>';
     return;
   }
-  root.innerHTML = casas.map(casa => (
+  root.innerHTML = casas.map(casa => {
+    const fotoSrcValue = photoSrc(casa.foto);
+    const fotoMarkup = fotoSrcValue
+      ? '<img class="casa-admin-photo" src="' + escapeHtml(fotoSrcValue) + '" alt="">'
+      : '<div class="casa-admin-photo casa-admin-photo-empty">Sin foto</div>';
+
+    return (
     '<article class="card casa-card" data-slug="' + escapeHtml(casa.slug) + '">' +
-      '<h3>' + escapeHtml(casa.nombre) + '</h3>' +
-      '<div class="casa-meta">' +
-        '<span class="tag">' + escapeHtml(casa.slug) + '</span> ' +
-        '<span>' + escapeHtml(valueOrDash(casa.ciudad)) + '</span> · ' +
-        '<span class="' + (casa.activa ? 'status-on' : 'status-off') + '">' + (casa.activa ? 'Activa' : 'Inactiva') + '</span>' +
+      '<div class="casa-admin-head">' + fotoMarkup +
+        '<div><h3>' + escapeHtml(casa.nombre) + '</h3>' +
+        '<div class="casa-meta">' +
+          '<span class="tag">' + escapeHtml(casa.slug) + '</span> ' +
+          '<span>' + escapeHtml(valueOrDash(casa.ciudad)) + '</span> · ' +
+          '<span class="' + (casa.activa ? 'status-on' : 'status-off') + '">' + (casa.activa ? 'Activa' : 'Inactiva') + '</span>' +
+        '</div></div>' +
       '</div>' +
       '<div class="form-grid">' +
         '<input data-field="nombre" value="' + escapeHtml(casa.nombre) + '" placeholder="Nombre">' +
@@ -297,6 +310,11 @@ function renderCasaList(){
         '<label class="subtle" style="margin:0"><input type="checkbox" data-field="activa"' + (casa.activa ? ' checked' : '') + '> Casa activa</label>' +
         '<input type="password" data-field="admin_secret" placeholder="Nueva clave admin casa (opcional)">' +
         '<p class="subtle" style="margin:0">' + (casa.has_admin_secret ? 'Clave configurada para esta casa.' : 'Sin clave propia aún: usa respaldo global o genera una nueva.') + '</p>' +
+        '<label class="upload-zone">' +
+          '<input type="file" accept="image/*" onchange="uploadCasaPhoto(\'' + escapeHtml(casa.slug) + '\', this)">' +
+          '<strong>Actualizar foto de perfil</strong>' +
+          '<span>Reemplaza la imagen visible en el catálogo.</span>' +
+        '</label>' +
       '</div>' +
       '<div class="casa-actions actions">' +
         '<button type="button" onclick="saveCasa(\'' + escapeHtml(casa.slug) + '\')">Guardar casa</button>' +
@@ -305,7 +323,33 @@ function renderCasaList(){
         '<a class="btn-secondary" href="/' + encodeURIComponent(casa.slug) + '" target="_blank" rel="noopener">Ver catálogo</a>' +
       '</div>' +
     '</article>'
-  )).join('');
+    );
+  }).join('');
+}
+
+async function uploadCasaFoto(slug, file){
+  const formData = new FormData();
+  formData.append('foto', file);
+  const res = await authFetch(api('/casas/' + encodeURIComponent(slug) + '/foto'), {
+    method:'POST',
+    body: formData
+  });
+  return res.ok;
+}
+
+async function uploadCasaPhoto(slug, input){
+  const file = input?.files?.[0];
+  if(!file){
+    return;
+  }
+  const ok = await uploadCasaFoto(slug, file);
+  input.value = '';
+  if(ok){
+    await loadCasas();
+    alert('Foto de la casa actualizada');
+    return;
+  }
+  alert('No se pudo subir la foto');
 }
 
 function showCasaSecretMessage(casaNombre, adminSecret){
@@ -384,6 +428,11 @@ document.getElementById('casaForm').addEventListener('submit', async event => {
   if(res.ok){
     const data = await res.json();
     form.reset();
+    const fotoInput = document.getElementById('createCasaFoto');
+    if(fotoInput?.files?.[0] && data?.casa?.slug){
+      await uploadCasaFoto(data.casa.slug, fotoInput.files[0]);
+      fotoInput.value = '';
+    }
     await loadCasas();
 
     if(data?.admin_secret){
